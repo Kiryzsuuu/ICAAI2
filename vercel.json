@@ -14,5 +14,8 @@
   ],
   "env": {
     "NODE_ENV": "production"
-  }
+  },
+  "installCommand": "npm install",
+  "buildCommand": "echo 'No build needed'",
+  "outputDirectory": "public"
 }
