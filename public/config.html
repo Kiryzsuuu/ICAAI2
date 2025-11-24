@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICAAI Configuration</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #ffffff;
+            color: #111827;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .softwareone-logo {
+            height: 28px;
+            width: auto;
+            display: block;
+        }
+
+        .header-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .container {
+            max-width: 880px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 28px;
+            border: 1px solid #eef2f7;
+            box-shadow: 0 6px 18px rgba(15,23,42,0.03);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #0f172a;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 14px;
+            background: #f9fafb;
+            border: 1px solid #e6eef8;
+            border-radius: 8px;
+            color: #111827;
+            font-size: 14px;
+            transition: border-color 0.12s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #c7e0ff;
+            background: #ffffff;
+        }
+
+        textarea {
+            height: 120px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #ffffff;
+            color: #111827;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.12s;
+            margin-right: 12px;
+        }
+
+        .btn:hover {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        .btn-primary {
+            background: #0366d6;
+            border-color: #0366d6;
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background: #0256b0;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .status {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            text-align: center;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.success {
+            background: #eefbe9;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .status.error {
+            background: #fff1f0;
+            color: #9b1c1c;
+            border: 1px solid #ffd7d9;
+        }
+
+        .description {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img class="softwareone-logo" src="https://www.softwareone.com/-/media/images/logos/softwareone-logo-blk.svg?iar=0&hash=6A277FF39328B4D79A071F4A9F95F301" alt="SoftwareOne logo">
+        <div class="header-title">ICAAI Configuration</div>
+    </div>
+    
+    <div class="container">
+        <div id="status" class="status"></div>
+        
+        <form id="configForm">
+            <div class="form-group">
+                <label for="instructions">Agent Instructions</label>
+                <textarea id="instructions" placeholder="Enter detailed instructions for the AI agent..."></textarea>
+                <div class="description">Define how the AI agent should behave and respond to users</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="voice">Voice Model</label>
+                <select id="voice">
+                    <option value="alloy">Alloy (Neutral)</option>
+                    <option value="echo">Echo (Male)</option>
+                    <option value="fable">Fable (British)</option>
+                    <option value="onyx">Onyx (Deep)</option>
+                    <option value="nova">Nova (Female)</option>
+                    <option value="shimmer">Shimmer (Soft)</option>
+                </select>
+                <div class="description">Choose the voice model for text-to-speech output</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="temperature">Temperature</label>
+                <input type="number" id="temperature" min="0" max="1" step="0.1" placeholder="0.7">
+                <div class="description">Controls randomness: 0.0 = focused, 1.0 = creative</div>
+            </div>
+            
+            <div class="actions">
+                <button type="submit" class="btn btn-primary">Save Configuration</button>
+                <button type="button" class="btn" onclick="loadConfig()">Load Current</button>
+                <button type="button" class="btn" onclick="resetConfig()">Reset Default</button>
+                <button type="button" class="btn" onclick="window.close()">Close</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById('configForm');
+        const status = document.getElementById('status');
+
+        loadConfig();
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const config = {
+                instructions: document.getElementById('instructions').value,
+                voice: document.getElementById('voice').value,
+                temperature: parseFloat(document.getElementById('temperature').value)
+            };
+
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus('Configuration saved successfully!', 'success');
+                } else {
+                    showStatus('Failed to save configuration', 'error');
+                }
+            } catch (error) {
+                showStatus('Error saving configuration: ' + error.message, 'error');
+            }
+        });
+
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                
+                document.getElementById('instructions').value = config.instructions || '';
+                document.getElementById('voice').value = config.voice || 'alloy';
+                document.getElementById('temperature').value = config.temperature || 0.7;
+                
+                showStatus('Configuration loaded successfully', 'success');
+            } catch (error) {
+                showStatus('Error loading configuration: ' + error.message, 'error');
+            }
+        }
+
+        function resetConfig() {
+            document.getElementById('instructions').value = "Anda adalah Interactive Call Agent AI yang membantu pelanggan dengan ramah dan profesional. Jawab dengan singkat dan jelas.";
+            document.getElementById('voice').value = 'alloy';
+            document.getElementById('temperature').value = 0.7;
+            
+            showStatus('Configuration reset to default values', 'success');
+        }
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

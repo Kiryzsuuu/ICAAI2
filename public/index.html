@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Software One - ICAAI</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #ffffff;
+            color: #111827;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 28px;
+            border-bottom: 1px solid #e6e6e6;
+            background: #ffffff;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .softwareone-logo {
+            height: 28px;
+            width: auto;
+            display: block;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        #userInfo {
+            background: #f1f5f9;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #374151;
+            border: 1px solid #e2e8f0;
+        }
+        
+        #logoutBtn {
+            background: #ef4444;
+            color: white;
+            border: 1px solid #dc2626;
+        }
+        
+        #logoutBtn:hover {
+            background: #dc2626;
+            border-color: #b91c1c;
+        }
+
+        .btn {
+            padding: 8px 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #ffffff;
+            color: #111827;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.12s ease;
+            box-shadow: 0 1px 2px rgba(16,24,40,0.03);
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 74px);
+        }
+
+        .left-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f7f9fb;
+            position: relative;
+        }
+
+        .agent-avatar {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #eef2ff 0%, #e6f0ff 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: #0f172a;
+            margin-bottom: 28px;
+            position: relative;
+            transition: all 0.3s ease;
+            border: 1px solid #e6eef8;
+        }
+
+        /* Avatar mouth transform settings */
+        #avatarMouth {
+            transform-box: fill-box; /* ensure transform uses shape box */
+            transform-origin: 70px 97px; /* center-bottom of mouth */
+            transition: transform 0.08s linear;
+        }
+
+        .agent-avatar.speaking {
+            box-shadow: 0 8px 20px rgba(15,23,42,0.06);
+            transform: translateY(-2px);
+        }
+
+        .status-display {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .status-title {
+            font-size: 22px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #0f172a;
+        }
+
+        .status-subtitle {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .control-btn {
+            min-width: 56px;
+            height: 44px;
+            padding: 6px 12px;
+            border-radius: 12px;
+            border: 1px solid #eef2f7;
+            background: #ffffff;
+            color: #111827;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.12s ease;
+            box-shadow: 0 6px 14px rgba(15,23,42,0.06);
+        }
+
+        .control-btn:hover {
+            background: #f8fafc;
+        }
+
+        .control-btn.active {
+            background: #e6f0ff;
+            border-color: #c7e0ff;
+        }
+
+        .control-btn.danger {
+            background: #fff1f0;
+            border-color: #ffd7d9;
+            color: #9b1c1c;
+        }
+
+        /* Icon circle inside the button (iOS-like) */
+        .control-btn .icon-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-btn.call .icon-circle {
+            background: linear-gradient(180deg,#34d399,#10b981);
+            color: #ffffff;
+        }
+
+        .control-btn.end .icon-circle {
+            background: linear-gradient(180deg,#fb7185,#ef4444);
+            color: #ffffff;
+        }
+
+        .control-btn.mic .icon-circle {
+            background: #f8fafc;
+            border: 1px solid #eef2f7;
+            color: #0f172a;
+        }
+
+        .control-btn.mic.active .icon-circle {
+            background: #0366d6;
+            color: #ffffff;
+        }
+
+        .control-btn .icon-circle svg {
+            width: 18px;
+            height: 18px;
+            display: block;
+        }
+
+        .right-panel {
+            width: 420px;
+            background: #ffffff;
+            border-left: 1px solid #e6e6e6;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .panel-header {
+            padding: 20px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #0f172a;
+        }
+
+        .panel-subtitle {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            background: #ffffff;
+            min-height: 400px;
+        }
+
+        .messages {
+            overflow-y: auto;
+            margin-bottom: 16px;
+            padding: 8px;
+            height: 300px;
+            scroll-behavior: smooth;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            margin-bottom: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 85%;
+            word-wrap: break-word;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #0f172a;
+            background: #f1f5f9;
+        }
+
+        .message.user {
+            background: #e0e7ff;
+            color: #1e40af;
+            margin-left: 0;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+            text-align: left;
+            align-self: flex-start;
+            font-weight: 500;
+        }
+
+        .message.agent {
+            background: #f1f5f9;
+            color: #0f172a;
+            margin-left: 0;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+            text-align: left;
+            align-self: flex-start;
+        }
+
+        .message.system {
+            background: #f1f5f9;
+            color: #374151;
+            text-align: center;
+            font-size: 12px;
+            margin: 8px auto;
+        }
+        
+        .message.transcribing {
+            opacity: 0.7;
+            border-left: 3px solid #0366d6;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+
+        .input-container {
+            display: flex;
+            gap: 8px;
+            padding: 12px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .input-container input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #111827;
+            font-size: 14px;
+        }
+
+        .input-container input::placeholder {
+            color: #9ca3af;
+        }
+
+        .send-btn {
+            width: 44px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            background: #0366d6;
+            color: #ffffff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .send-btn:hover {
+            background: #0256b0;
+        }
+
+        .send-btn:disabled {
+            background: #e5e7eb;
+            cursor: not-allowed;
+        }
+
+        .pdf-section {
+            padding: 20px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #111827;
+        }
+
+        .upload-area {
+            border: 1px dashed #e6e6e6;
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: all 0.12s ease;
+            color: #6b7280;
+            background: #ffffff;
+        }
+
+        .upload-area:hover {
+            border-color: #c7e0ff;
+            background: #f8fafc;
+            color: #111827;
+        }
+
+        .upload-area.dragover {
+            border-color: #c7e0ff;
+            background: rgba(227,242,255,0.6);
+        }
+
+        .pdf-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .pdf-item {
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            cursor: pointer;
+            transition: all 0.12s ease;
+            border: 1px solid transparent;
+        }
+        
+        .pdf-item:hover {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+        
+        .pdf-item.selected {
+            background: #e6f0ff;
+            border-color: #c7e0ff;
+            color: #0366d6;
+        }
+
+        .pdf-item {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.12s;
+            border: 1px solid #eef2ff;
+            font-size: 14px;
+            background: #ffffff;
+            color: #111827;
+        }
+
+        .pdf-item:hover {
+            background: #f8fafc;
+        }
+
+        .pdf-item.selected {
+            background: #e6f0ff;
+            border-color: #c7e0ff;
+        }
+
+        .hidden { display: none !important; }
+
+        /* Sliding left configuration panel */
+        .config-panel {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 320px;
+            background: #ffffff;
+            border-right: 1px solid #e6e6e6;
+            box-shadow: 6px 0 30px rgba(15,23,42,0.08);
+            transform: translateX(-100%);
+            transition: transform 260ms cubic-bezier(.2,.9,.2,1);
+            z-index: 120;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .config-panel.open {
+            transform: translateX(0);
+        }
+
+        /* Backdrop when config open */
+        #configBackdrop.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .config-panel .panel-header {
+            padding: 16px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .config-panel .panel-body {
+            padding: 12px 16px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+    .config-toggle-btn { padding:6px 10px; border-radius:8px; border:1px solid #e5e7eb; background:#ffffff; cursor:pointer; }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+        
+        /* Monitoring panel (right sidebar) */
+        .monitoring-panel {
+            position: fixed;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 360px;
+            background: #ffffff;
+            border-left: 1px solid #e6e6e6;
+            box-shadow: -6px 0 30px rgba(15,23,42,0.08);
+            transform: translateX(100%);
+            transition: transform 260ms cubic-bezier(.2,.9,.2,1);
+            z-index: 120;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .monitoring-panel.open {
+            transform: translateX(0);
+        }
+        
+        #monitoringBackdrop.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .monitoring-section {
+            margin-bottom: 20px;
+        }
+        
+        .monitoring-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 14px 12px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(15,23,42,0.08);
+        }
+        
+        .stat-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 4px;
+            line-height: 1;
+        }
+        
+        .stat-label {
+            font-size: 10px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+        
+        .chart-container {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .chart-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .chart-legend {
+            display: flex;
+            gap: 12px;
+            font-size: 10px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .legend-color {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+        }
+        
+        .legend-messages {
+            background: #0366d6;
+        }
+        
+        .legend-audio {
+            background: #059669;
+        }
+        
+        .sessions-container {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .session-item {
+            background: #ffffff;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
+        }
+        
+        .session-item:hover {
+            background: #f8fafc;
+            border-color: #d1d5db;
+        }
+        
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        
+        .session-id {
+            font-size: 11px;
+            font-weight: 600;
+            color: #111827;
+            font-family: monospace;
+        }
+        
+        .session-time {
+            font-size: 10px;
+            color: #9ca3af;
+        }
+        
+        .session-status {
+            font-size: 11px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .status-connected .status-dot {
+            background: #10b981;
+            animation: pulse-green 2s infinite;
+        }
+        
+        .status-busy .status-dot {
+            background: #f59e0b;
+            animation: pulse-yellow 2s infinite;
+        }
+        
+        .status-disconnected .status-dot {
+            background: #ef4444;
+        }
+        
+        @keyframes pulse-green {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        @keyframes pulse-yellow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #9ca3af;
+            padding: 24px 16px;
+            font-size: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px dashed #d1d5db;
+        }
+        
+        .refresh-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid #0366d6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+                height: calc(100vh - 60px);
+            }
+            
+            .header {
+                padding: 10px 16px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            
+            .logo {
+                gap: 8px;
+            }
+            
+            .softwareone-logo {
+                height: 24px;
+            }
+            
+            .logo-text {
+                font-size: 16px;
+            }
+            
+            .header-controls {
+                gap: 8px;
+            }
+            
+            .btn {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+            
+            .left-panel {
+                flex: none;
+                height: 50vh;
+                padding: 20px 16px;
+            }
+            
+            .agent-avatar {
+                width: 120px;
+                height: 120px;
+                margin-bottom: 20px;
+            }
+            
+            .agent-avatar svg {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .status-title {
+                font-size: 18px;
+            }
+            
+            .status-subtitle {
+                font-size: 12px;
+            }
+            
+            .controls {
+                gap: 8px;
+            }
+            
+            .control-btn {
+                min-width: 48px;
+                height: 48px;
+            }
+            
+            .control-btn .icon-circle {
+                width: 32px;
+                height: 32px;
+            }
+            
+            .control-btn .icon-circle svg {
+                width: 16px;
+                height: 16px;
+            }
+            
+            .right-panel {
+                width: 100%;
+                height: 50vh;
+                border-left: none;
+                border-top: 1px solid #e6e6e6;
+            }
+            
+            .panel-header {
+                padding: 12px 16px;
+            }
+            
+            .panel-title {
+                font-size: 16px;
+            }
+            
+            .panel-subtitle {
+                font-size: 12px;
+            }
+            
+            .chat-container {
+                padding: 12px 16px;
+                min-height: auto;
+            }
+            
+            .messages {
+                height: 200px;
+                padding: 4px;
+            }
+            
+            .message {
+                padding: 8px 12px;
+                font-size: 13px;
+                margin-bottom: 8px;
+            }
+            
+            .input-container {
+                padding: 8px;
+            }
+            
+            .input-container input {
+                font-size: 16px; /* Prevent zoom on iOS */
+            }
+            
+            .pdf-section {
+                padding: 12px 16px;
+            }
+            
+            .section-title {
+                font-size: 14px;
+                margin-bottom: 12px;
+            }
+            
+            .upload-area {
+                padding: 16px;
+                font-size: 13px;
+            }
+            
+            .pdf-list {
+                max-height: 120px;
+            }
+            
+            .pdf-item {
+                padding: 8px;
+                font-size: 12px;
+            }
+            
+            /* Config panel mobile adjustments */
+            .config-panel {
+                width: 100%;
+                transform: translateX(-100%);
+            }
+            
+            .config-panel.open {
+                transform: translateX(0);
+            }
+            
+            /* Monitoring panel mobile adjustments */
+            .monitoring-panel {
+                width: 100%;
+                transform: translateX(100%);
+            }
+            
+            .monitoring-panel.open {
+                transform: translateX(0);
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            
+            .stat-card {
+                padding: 10px 8px;
+            }
+            
+            .stat-value {
+                font-size: 18px;
+            }
+            
+            .stat-label {
+                font-size: 9px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header {
+                padding: 8px 12px;
+            }
+            
+            .logo-text {
+                display: none; /* Hide on very small screens */
+            }
+            
+            .left-panel {
+                padding: 16px 12px;
+            }
+            
+            .agent-avatar {
+                width: 100px;
+                height: 100px;
+                margin-bottom: 16px;
+            }
+            
+            .agent-avatar svg {
+                width: 80px;
+                height: 80px;
+            }
+            
+            .status-title {
+                font-size: 16px;
+            }
+            
+            .control-btn {
+                min-width: 44px;
+                height: 44px;
+            }
+            
+            .control-btn .icon-circle {
+                width: 28px;
+                height: 28px;
+            }
+            
+            .control-btn .icon-circle svg {
+                width: 14px;
+                height: 14px;
+            }
+            
+            .chat-container {
+                padding: 8px 12px;
+            }
+            
+            .messages {
+                height: 180px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <img class="softwareone-logo" src="https://www.softwareone.com/-/media/images/logos/softwareone-logo-blk.svg?iar=0&hash=6A277FF39328B4D79A071F4A9F95F301" alt="SoftwareOne logo">
+            <div class="logo-text">Interactive Call Agent AI</div>
+        </div>
+        <div class="header-controls">
+            <span id="userInfo" style="font-size:12px;color:#6b7280;margin-right:12px;"></span>
+            <a href="#" id="historyBtn" class="btn" title="History Pesanan">History</a>
+            <button class="btn config-toggle-btn" id="configToggleBtn" aria-expanded="false" title="Open configuration" style="display:none;">Configure</button>
+            <button class="btn config-toggle-btn" id="monitoringToggleBtn" aria-expanded="false" title="Open monitoring" style="display:none;">Monitoring</button>
+            <a href="/dashboard" class="btn" id="dashboardBtn" title="Open dashboard" style="display:none;"> Dashboard</a>
+            <button class="btn" id="logoutBtn" title="Logout">Logout</button>
+        </div>
+    </div>
+    
+    <!-- Sliding configuration panel (left) -->
+    <aside class="config-panel" id="configPanel" aria-hidden="true">
+        <div class="panel-header">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                    <div style="font-weight:600;font-size:16px;color:#0f172a;">Configuration</div>
+                    <div style="font-size:12px;color:#6b7280;">Agent & UI settings</div>
+                </div>
+                <div>
+                    <button id="configCloseBtn" class="btn" aria-label="Close configuration">✕</button>
+                </div>
+            </div>
+        </div>
+        <div class="panel-body">
+            <div style="margin-bottom:10px;">
+                <div style="font-size:13px;font-weight:600;color:#111827;margin-bottom:6px;">Avatar mouth tuning</div>
+                <div style="font-size:12px;color:#6b7280;margin-bottom:8px;">Adjust how the avatar reacts to audio (sensitivity & smoothing).</div>
+
+                <label for="mouthSensitivity" style="font-size:12px;color:#374151;display:block;margin-top:6px;">Mouth sensitivity</label>
+                <input id="mouthSensitivity" type="range" min="0.2" max="3" step="0.1" value="1.0" style="width:100%; margin-top:6px;">
+                <div id="mouthSensitivityVal" style="font-size:11px;color:#6b7280;margin-top:4px;">1.0</div>
+
+                <label for="mouthSmoothing" style="font-size:12px;color:#374151;display:block;margin-top:12px;">Mouth smoothing</label>
+                <input id="mouthSmoothing" type="range" min="0" max="1" step="0.01" value="0.7" style="width:100%; margin-top:6px;">
+                <div id="mouthSmoothingVal" style="font-size:11px;color:#6b7280;margin-top:4px;">0.70</div>
+            </div>
+
+            <hr style="border:none;border-top:1px solid #eef2f7;margin:12px 0;">
+            <div style="font-size:13px;font-weight:600;color:#111827;margin-bottom:8px;">Agent configuration</div>
+            <div style="font-size:12px;color:#6b7280;margin-bottom:12px;">Instructions, voice selection and temperature for the assistant.</div>
+
+            <label for="cfg_instructions" style="font-size:12px;color:#374151;display:block;margin-top:6px;font-weight:600;">Agent Instructions</label>
+            <textarea id="cfg_instructions" style="width:100%;height:120px;padding:8px;border:1px solid #eef2f7;border-radius:8px;background:#fff;margin-top:6px;" placeholder="Enter detailed instructions for the AI agent..."></textarea>
+
+            <label for="cfg_voice" style="font-size:12px;color:#374151;display:block;margin-top:8px;font-weight:600;">Voice model</label>
+            <select id="cfg_voice" style="width:100%;padding:8px;border:1px solid #eef2f7;border-radius:8px;margin-top:6px;">
+                <option value="alloy">Alloy (Neutral)</option>
+                <option value="echo">Echo (Male)</option>
+                <option value="fable">Fable (British)</option>
+                <option value="onyx">Onyx (Deep Male)</option>
+                <option value="shimmer">Shimmer (Soft Female)</option>
+                <option value="ash">Ash (Male)</option>
+                <option value="ballad">Ballad (Female)</option>
+                <option value="coral">Coral (Female)</option>
+                <option value="sage">Sage (Male)</option>
+                <option value="verse">Verse (Male)</option>
+            </select>
+
+            <label for="cfg_verbosity" style="font-size:12px;color:#374151;display:block;margin-top:8px;font-weight:600;">Verbosity</label>
+            <select id="cfg_verbosity" style="width:100%;padding:8px;border:1px solid #eef2f7;border-radius:8px;margin-top:6px;">
+                <option value="concise">Concise</option>
+                <option value="balanced">Balanced</option>
+                <option value="detailed">Detailed</option>
+            </select>
+
+            <label for="cfg_persona" style="font-size:12px;color:#374151;display:block;margin-top:8px;font-weight:600;">Persona preset</label>
+            <select id="cfg_persona" style="width:100%;padding:8px;border:1px solid #eef2f7;border-radius:8px;margin-top:6px;">
+                <option value="professional">Professional</option>
+                <option value="friendly">Friendly</option>
+                <option value="empathetic">Empathetic</option>
+                <option value="sales">Sales</option>
+            </select>
+
+            <div style="margin-top:10px;">
+                <button id="cfgPreviewBtn" class="btn">Preview Persona</button>
+            </div>
+
+            <label for="cfg_temperature" style="font-size:12px;color:#374151;display:block;margin-top:8px;font-weight:600;">Temperature</label>
+            <input type="number" id="cfg_temperature" min="0" max="1" step="0.1" value="0.7" style="width:100%;padding:8px;border:1px solid #eef2f7;border-radius:8px;margin-top:6px;" />
+
+            <div style="display:flex;gap:8px;margin-top:10px;">
+                <button id="cfgSaveBtn" class="btn btn-primary">Save Configuration</button>
+                <button id="cfgLoadBtn" class="btn">Load Current</button>
+                <button id="cfgResetBtn" class="btn">Reset Default</button>
+            </div>
+
+            <hr style="border:none;border-top:1px solid #eef2f7;margin:12px 0;">
+
+            <div style="font-size:13px;font-weight:600;color:#111827;margin-bottom:8px;">Debug</div>
+            <div style="font-size:12px;color:#6b7280;margin-bottom:8px;">Real-time audio debug information.</div>
+            <div id="configDebugMic" style="font-size:13px;color:#111827;margin-top:6px;">Mic level: 0.00</div>
+            <div id="configDebugIncoming" style="font-size:13px;color:#111827;margin-top:6px;">Incoming level: 0.00</div>
+            <div id="configDebugAudioReceived" style="font-size:13px;color:#111827;margin-top:6px;">Audio received: No</div>
+        </div>
+    </aside>
+    <!-- Backdrop shown when config panel is open -->
+    <div id="configBackdrop" style="position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.25);opacity:0;visibility:hidden;transition:opacity 200ms;z-index:110;"></div>
+    
+    <!-- Monitoring panel (right sidebar) -->
+    <aside class="monitoring-panel" id="monitoringPanel" aria-hidden="true">
+        <div class="panel-header">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                    <div style="font-weight:600;font-size:16px;color:#0f172a;">System Monitor</div>
+                    <div style="font-size:12px;color:#6b7280;">Real-time performance dashboard</div>
+                </div>
+                <div>
+                    <button id="monitoringCloseBtn" class="btn" aria-label="Close monitoring">✕</button>
+                </div>
+            </div>
+        </div>
+        <div class="panel-body">
+            <!-- System Stats -->
+            <div class="monitoring-section">
+                <div class="monitoring-section-title">📊 System Statistics</div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="activeSessions">0</div>
+                        <div class="stat-label">Active Sessions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalMessages">0</div>
+                        <div class="stat-label">Total Messages</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalAudioChunks">0</div>
+                        <div class="stat-label">Audio Chunks</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="uptime">0s</div>
+                        <div class="stat-label">Server Uptime</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Activity Chart -->
+            <div class="monitoring-section">
+                <div class="monitoring-section-title">📈 Activity Trends</div>
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div class="chart-title">Real-time Activity</div>
+                        <div class="chart-legend">
+                            <div class="legend-item">
+                                <div class="legend-color legend-messages"></div>
+                                <span>Messages</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color legend-audio"></div>
+                                <span>Audio</span>
+                            </div>
+                        </div>
+                    </div>
+                    <canvas id="activityChart" width="320" height="120" style="border-radius:6px;"></canvas>
+                </div>
+            </div>
+            
+            <!-- Active Sessions -->
+            <div class="monitoring-section">
+                <div class="monitoring-section-title">
+                    🔗 Active Sessions
+                    <span class="refresh-indicator" id="refreshIndicator" style="display:none;"></span>
+                </div>
+                <div class="sessions-container" id="sessionsList">
+                    <div class="empty-state">
+                        <div>🔍 No active sessions</div>
+                        <div style="margin-top:4px;font-size:10px;">Sessions will appear here when users connect</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+    
+    <!-- Backdrop for monitoring panel -->
+    <div id="monitoringBackdrop" style="position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.25);opacity:0;visibility:hidden;transition:opacity 200ms;z-index:110;"></div>
+    
+    <div class="main-container">
+        <div class="left-panel">
+            <div class="agent-avatar" id="agentAvatar">
+                <!-- Simple SVG avatar: eyes + mouth. Mouth (id=avatarMouth) will be scaled for realtime movement -->
+                <svg width="140" height="140" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <circle cx="70" cy="70" r="68" fill="#eef6ff" stroke="#e6eef8" stroke-width="2"></circle>
+                    <!-- Eyes -->
+                    <circle cx="50" cy="58" r="6" fill="#0f172a"></circle>
+                    <circle cx="90" cy="58" r="6" fill="#0f172a"></circle>
+                    <!-- Mouth: a simple path that will be scaled on Y to simulate opening -->
+                    <path id="avatarMouth" d="M50 92 Q70 102 90 92" stroke="#0f172a" stroke-width="4" stroke-linecap="round" fill="none" />
+                </svg>
+            </div>
+            
+            <div class="status-display">
+                <div class="status-title" id="statusTitle">Ready to connect</div>
+                <div class="status-subtitle" id="statusSubtitle">Click connect to start conversation</div>
+            </div>
+            
+            <!-- Debug overlay -->
+            <div style="position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.8); color: white; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-family: monospace; z-index: 10; display: none;">
+                <div id="debugMic">Mic level: 0.00</div>
+                <div id="debugIncoming">Incoming level: 0.00</div>
+                <div id="debugAudioReceived">Audio received: No</div>
+            </div>
+            
+            <div class="controls">
+                <button class="control-btn call" id="connectBtn" title="Connect" aria-label="Connect call">
+                    <span class="icon-circle" aria-hidden="true">
+                        <!-- Phone icon -->
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.86 19.86 0 0 1 3 5.18 2 2 0 0 1 5 3h3a2 2 0 0 1 2 1.72c.12 1.21.45 2.39.95 3.5a2 2 0 0 1-.45 2.11L9.91 11.09a16 16 0 0 0 6 6l1.76-1.36a2 2 0 0 1 2.11-.45c1.11.5 2.29.83 3.5.95A2 2 0 0 1 22 16.92z" fill="currentColor"/>
+                        </svg>
+                    </span>
+                </button>
+
+                <button class="control-btn mic" id="micBtn" title="Mute/Unmute" aria-label="Toggle microphone" disabled>
+                    <span class="icon-circle" aria-hidden="true">
+                        <!-- Microphone icon -->
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z" fill="currentColor"/>
+                            <path d="M19 11v1a7 7 0 0 1-14 0v-1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M12 19v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                </button>
+
+                <button class="control-btn end hidden" id="disconnectBtn" title="End call" aria-label="End call">
+                    <span class="icon-circle" aria-hidden="true">
+                        <!-- Phone hangup icon -->
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.86 19.86 0 0 1 3 5.18 2 2 0 0 1 5 3h3a2 2 0 0 1 2 1.72c.12 1.21.45 2.39.95 3.5a2 2 0 0 1-.45 2.11L9.91 11.09a16 16 0 0 0 6 6l1.76-1.36a2 2 0 0 1 2.11-.45c1.11.5 2.29.83 3.5.95A2 2 0 0 1 22 16.92z" fill="currentColor" transform="rotate(135 12 12)"/>
+                        </svg>
+                    </span>
+                </button>
+            </div>
+        </div>
+        
+        <div class="right-panel">
+            <div class="panel-header">
+                <div class="panel-title">Conversation</div>
+                <div class="panel-subtitle">Real-time chat with AI agent</div>
+            </div>
+            
+            <div class="chat-container">
+                <div class="messages" id="messages"></div>
+                
+                <div class="input-container">
+                    <input type="text" id="messageInput" placeholder="Type a message..." disabled>
+                    <button class="send-btn" id="sendBtn" disabled>→</button>
+                </div>
+            </div>
+            
+            <div class="pdf-section" id="pdfSection" style="display:none;">
+                <div class="section-title">Knowledge Base</div>
+                
+                <div class="upload-area" id="uploadArea">
+                    <div>📄 Drop PDF files here or click to upload</div>
+                    <input type="file" id="fileInput" accept=".pdf" multiple style="display: none;">
+                </div>
+                
+                <div class="pdf-list" id="pdfList"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Check authentication
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token') || localStorage.getItem('icaai_token');
+        
+        if (token) {
+            localStorage.setItem('icaai_token', token);
+            // Remove token from URL
+            if (urlParams.get('token')) {
+                window.history.replaceState({}, document.title, '/');
+            }
+            
+            // Get user info from API
+            fetch('/api/user', {
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.user) {
+                    const user = data.user;
+                    document.getElementById('userInfo').textContent = `${user.name} ${user.isAdmin ? '(Admin)' : ''}`;
+                    
+                    if (user.isAdmin) {
+                        document.getElementById('configToggleBtn').style.display = 'inline-block';
+                        document.getElementById('monitoringToggleBtn').style.display = 'inline-block';
+                        document.getElementById('dashboardBtn').style.display = 'inline-block';
+                        document.getElementById('pdfSection').style.display = 'block';
+                    }
+                } else {
+                    localStorage.removeItem('icaai_token');
+                    window.location.href = '/login.html';
+                }
+            })
+            .catch(e => {
+                console.error('Failed to get user info', e);
+                localStorage.removeItem('icaai_token');
+                window.location.href = '/login.html';
+            });
+        } else {
+            window.location.href = '/login.html';
+        }
+        
+        // History button handler
+        document.getElementById('historyBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            const token = localStorage.getItem('icaai_token');
+            if (token) {
+                window.location.href = '/orders.html';
+            }
+        });
+        
+        // Logout handler
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('icaai_token');
+            window.location.href = '/auth/logout';
+        });
+    </script>
+    <script src="app.js"></script>
+</body>
+</html>

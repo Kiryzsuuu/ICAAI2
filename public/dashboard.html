@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICAAI Dashboard - SoftwareOne</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+        .header {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo img {
+            height: 32px;
+        }
+        
+        .logo-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 24px;
+        }
+        
+        .nav-link {
+            color: #64748b;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            color: #0f172a;
+            background: #f1f5f9;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background: #ffffff;
+            color: #374151;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        .page-header {
+            margin-bottom: 32px;
+        }
+        
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+        
+        .page-subtitle {
+            color: #64748b;
+            font-size: 16px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .stat-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.2s;
+        }
+        
+        .stat-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-color: #cbd5e1;
+        }
+        
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .stat-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+        
+        .stat-change {
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .stat-change.positive {
+            color: #059669;
+        }
+        
+        .stat-change.negative {
+            color: #dc2626;
+        }
+        
+        .chart-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .chart-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+        
+        .chart-filters {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .filter-btn {
+            padding: 6px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background: #ffffff;
+            color: #64748b;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .filter-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        .chart-placeholder {
+            height: 300px;
+            background: #f8fafc;
+            border: 2px dashed #e2e8f0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        .activity-feed {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .activity-item {
+            display: flex;
+            gap: 12px;
+            padding: 16px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .activity-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        
+        .activity-content {
+            flex: 1;
+        }
+        
+        .activity-title {
+            font-weight: 500;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+        
+        .activity-desc {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+        
+        .activity-time {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        
+        .sessions-section {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px; /* space between title and button */
+            margin-bottom: 24px;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+        
+        .sessions-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .sessions-table th {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 500;
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        .sessions-table td {
+            padding: 16px 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .status-completed {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 24px;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #64748b;
+        }
+        
+        .session-detail {
+            margin-bottom: 24px;
+        }
+        
+        .detail-row {
+            display: flex;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #64748b;
+            width: 150px;
+            flex-shrink: 0;
+        }
+        
+        .detail-value {
+            color: #0f172a;
+            flex: 1;
+        }
+        
+        .messages-list {
+            margin-top: 24px;
+        }
+        
+        .message-item {
+            padding: 12px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+        
+        .message-item.user {
+            background: #dbeafe;
+            border-color: #3b82f6;
+        }
+        
+        .message-item.agent {
+            background: #dcfce7;
+            border-color: #059669;
+        }
+        
+        .message-item.system {
+            background: #fef3c7;
+            border-color: #d97706;
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        
+        .message-type {
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .message-time {
+            color: #64748b;
+        }
+        
+        .message-text {
+            color: #0f172a;
+            line-height: 1.5;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            
+            .chart-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .modal-content {
+                width: 95%;
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Session Detail Modal -->
+    <div id="sessionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Session Details</h2>
+                <button class="modal-close" onclick="closeSessionModal()">&times;</button>
+            </div>
+            <div id="sessionDetailContent">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="header">
+        <div class="logo">
+            <img src="https://www.softwareone.com/-/media/images/logos/softwareone-logo-blk.svg?iar=0&hash=6A277FF39328B4D79A071F4A9F95F301" alt="SoftwareOne">
+            <div class="logo-text">ICAAI Dashboard</div>
+        </div>
+        
+        <nav class="nav-links">
+                    <a href="#" class="nav-link active" data-section="section-overview">Overview</a>
+                    <a href="#" class="nav-link" data-section="section-sessions">Sessions</a>
+                    <a href="#" class="nav-link" data-section="section-analytics">Analytics</a>
+                    <a href="/users" class="nav-link" style="cursor: pointer;">Users</a>
+                    <a href="#" class="nav-link" data-section="section-settings">Settings</a>
+        </nav>
+        
+        <div class="user-menu">
+            <a href="/" class="btn">Launch Agent</a>
+            <button class="btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Project Overview</h1>
+            <p class="page-subtitle">Monitor your Interactive Call Agent AI performance and usage</p>
+        </div>
+        
+    <div id="section-overview">
+    <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-title">Total Sessions</div>
+                </div>
+                <div class="stat-value" id="totalSessions">0</div>
+                <div class="stat-change positive">
+                    <span>↗</span> +12% from last week
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-title">Active Sessions</div>
+                </div>
+                <div class="stat-value" id="activeSessions">0</div>
+                <div class="stat-change positive">
+                    <span>↗</span> +5% from yesterday
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-title">Total Messages</div>
+                </div>
+                <div class="stat-value" id="totalMessages">0</div>
+                <div class="stat-change positive">
+                    <span>↗</span> +8% from last week
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-title">Audio Chunks</div>
+                </div>
+                <div class="stat-value" id="totalAudioChunks">0</div>
+                <div class="stat-change positive">
+                    <span>↗</span> +15% from last week
+                </div>
+            </div>
+    </div>
+    </div>
+        
+    <div id="section-analytics" class="chart-section">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">Usage Analytics</div>
+                    <div class="chart-filters">
+                        <button class="filter-btn active">24h</button>
+                        <button class="filter-btn">7d</button>
+                        <button class="filter-btn">30d</button>
+                    </div>
+                </div>
+                <div class="chart-placeholder">
+                    <canvas id="usageChart" width="600" height="300"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">Recent Activity</div>
+                </div>
+                <div class="activity-feed" id="activityFeed">
+                    <div class="activity-item">
+                        <div class="activity-icon" style="background: #dcfce7; color: #059669;">✓</div>
+                        <div class="activity-content">
+                            <div class="activity-title">Session completed</div>
+                            <div class="activity-desc">User session ended successfully</div>
+                            <div class="activity-time">2 minutes ago</div>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-icon" style="background: #dbeafe; color: #3b82f6;">📄</div>
+                        <div class="activity-content">
+                            <div class="activity-title">PDF uploaded</div>
+                            <div class="activity-desc">New knowledge base document added</div>
+                            <div class="activity-time">5 minutes ago</div>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-icon" style="background: #fef3c7; color: #d97706;">🔧</div>
+                        <div class="activity-content">
+                            <div class="activity-title">Configuration updated</div>
+                            <div class="activity-desc">Agent settings modified</div>
+                            <div class="activity-time">10 minutes ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    <div id="section-sessions" class="sessions-section">
+            <div class="section-header">
+                <h2 class="section-title">Recent Sessions</h2>
+                <button class="btn btn-primary">View All Sessions</button>
+            </div>
+            
+            <table class="sessions-table">
+                <thead>
+                    <tr>
+                        <th>Session ID</th>
+                        <th>Status</th>
+                        <th>Duration</th>
+                        <th>Messages</th>
+                        <th>Started</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="sessionsTableBody">
+                    <!-- Sessions will be populated here -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="section-settings" style="display:none;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+                <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:24px;">
+                    <h3 style="font-size:18px;font-weight:600;color:#0f172a;margin-bottom:16px;">Agent Configuration</h3>
+                    
+                    <div style="margin-bottom:16px;">
+                        <label style="display:block;font-size:14px;font-weight:500;color:#374151;margin-bottom:6px;">Instructions</label>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <textarea id="agentInstructions" style="width:100%;min-height:100px;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:14px;" placeholder="Enter agent instructions..."></textarea>
+                            <button style="padding:4px 8px;font-size:12px;border:1px solid #e2e8f0;background:#f8fafc;border-radius:4px;cursor:pointer;" onclick="saveConfig('instructions')">💾</button>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom:16px;">
+                        <label style="display:block;font-size:14px;font-weight:500;color:#374151;margin-bottom:6px;">Voice Model</label>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <select id="agentVoice" style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:14px;background:white;" onchange="saveConfig('voice')">
+                                <option value="alloy">Alloy (Neutral)</option>
+                                <option value="echo">Echo (Male)</option>
+                                <option value="fable">Fable (British)</option>
+                                <option value="onyx">Onyx (Deep Male)</option>
+                                <option value="shimmer">Shimmer (Soft Female)</option>
+                            </select>
+                            <span id="voiceSaved" style="color:#059669;font-size:12px;opacity:0;">✓</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom:16px;">
+                        <label style="display:block;font-size:14px;font-weight:500;color:#374151;margin-bottom:6px;">Temperature</label>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <input type="number" id="agentTemperature" style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:14px;" min="0" max="1" step="0.1" onchange="saveConfig('temperature')">
+                            <span id="temperatureSaved" style="color:#059669;font-size:12px;opacity:0;">✓</span>
+                        </div>
+                    </div>
+                    
+                    <div style="background:#fef3c7;padding:12px;border-radius:8px;border:1px solid #f59e0b;margin-bottom:16px;">
+                        <h4 style="font-size:14px;font-weight:600;color:#92400e;margin-bottom:8px;">💰 Cost Optimization</h4>
+                        
+                        <div style="margin-bottom:12px;">
+                            <label style="display:block;font-size:12px;font-weight:500;color:#92400e;margin-bottom:4px;">Max Response Tokens</label>
+                            <input type="number" id="maxTokens" style="width:100%;padding:6px 8px;border:1px solid #f59e0b;border-radius:4px;font-size:12px;" min="50" max="4096" value="150" onchange="saveConfig('max_tokens')">
+                            <small style="color:#92400e;font-size:10px;">Lower = cheaper (default: 4096)</small>
+                        </div>
+                        
+                        <div style="margin-bottom:12px;">
+                            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#92400e;">
+                                <input type="checkbox" id="enableFallback" checked onchange="saveConfig('enable_fallback')">
+                                Use browser TTS fallback (saves ~80% cost)
+                            </label>
+                        </div>
+                        
+                        <div style="margin-bottom:12px;">
+                            <label style="display:block;font-size:12px;font-weight:500;color:#92400e;margin-bottom:4px;">Session Timeout (minutes)</label>
+                            <input type="number" id="sessionTimeout" style="width:100%;padding:6px 8px;border:1px solid #f59e0b;border-radius:4px;font-size:12px;" min="1" max="30" value="5" onchange="saveConfig('session_timeout')">
+                            <small style="color:#92400e;font-size:10px;">Auto-disconnect idle sessions</small>
+                        </div>
+                        
+                        <div style="margin-bottom:8px;">
+                            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#92400e;">
+                                <input type="checkbox" id="textOnlyMode" onchange="toggleTextOnlyMode()">
+                                Text-only mode (no audio, 95% cheaper)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:24px;">
+                    <h3 style="font-size:18px;font-weight:600;color:#0f172a;margin-bottom:16px;">System Settings</h3>
+                    
+                    <div style="margin-bottom:16px;">
+                        <label style="display:block;font-size:14px;font-weight:500;color:#374151;margin-bottom:6px;">Auto-refresh (seconds)</label>
+                        <input type="number" id="refreshInterval" style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:14px;" min="5" max="300" value="10" onchange="updateRefreshInterval()">
+                    </div>
+                    
+                    <div style="background:#fee2e2;padding:12px;border-radius:8px;border:1px solid #fca5a5;margin-bottom:16px;">
+                        <h4 style="font-size:14px;font-weight:600;color:#991b1b;margin-bottom:8px;">⚠️ Cost Alert</h4>
+                        <p style="font-size:12px;color:#991b1b;margin-bottom:8px;">OpenAI Realtime API costs ~$0.06/minute for audio. Estimated monthly cost for 8h/day usage: <strong>$864</strong></p>
+                        
+                        <div style="margin-bottom:8px;">
+                            <label style="display:block;font-size:12px;font-weight:500;color:#991b1b;margin-bottom:4px;">Daily Budget Limit ($)</label>
+                            <input type="number" id="dailyBudget" style="width:100%;padding:6px 8px;border:1px solid #fca5a5;border-radius:4px;font-size:12px;" min="1" max="1000" value="50" onchange="saveBudgetLimit()">
+                        </div>
+                        
+                        <button style="padding:6px 12px;border:1px solid #991b1b;border-radius:4px;background:#991b1b;color:white;cursor:pointer;font-size:12px;width:100%;" onclick="enableEmergencyMode()">🛑 Emergency: Switch to Text-Only</button>
+                    </div>
+                    
+                    <div style="margin-bottom:16px;">
+                        <button style="padding:8px 16px;border:1px solid #e2e8f0;border-radius:6px;background:#3b82f6;color:white;cursor:pointer;font-size:14px;margin-right:8px;" onclick="resetToDefaults()">🔄 Reset Defaults</button>
+                        <button style="padding:8px 16px;border:1px solid #e2e8f0;border-radius:6px;background:#ffffff;color:#374151;cursor:pointer;font-size:14px;" onclick="exportConfig()">📤 Export</button>
+                    </div>
+                    
+                    <div style="background:#f8fafc;padding:16px;border-radius:8px;border:1px solid #e2e8f0;">
+                        <h4 style="font-size:14px;font-weight:600;margin-bottom:8px;">Quick Actions</h4>
+                        <button style="padding:6px 12px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;color:#374151;cursor:pointer;font-size:12px;margin-right:8px;margin-bottom:4px;" onclick="testGreeting()">🎤 Test Greeting</button>
+                        <button style="padding:6px 12px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;color:#374151;cursor:pointer;font-size:12px;margin-right:8px;margin-bottom:4px;" onclick="clearLogs()">🗑️ Clear Logs</button>
+                        <button style="padding:6px 12px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;color:#374151;cursor:pointer;font-size:12px;margin-bottom:4px;" onclick="restartSystem()">🔄 Restart</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Realtime updates via Socket.IO
+        (function() {
+            try {
+                // Provide admin token when connecting so server marks us as admin
+                window.dashboardSocket = io({ auth: { token: 'admin' } });
+                window.dashboardSocket.on('connect', () => {
+                    console.log('Dashboard connected to server via socket.io');
+                });
+
+                window.dashboardSocket.on('monitoring.update', (payload) => {
+                    if (payload && payload.stats) {
+                        const s = payload.stats;
+                        document.getElementById('totalSessions').textContent = s.totalSessions || 0;
+                        document.getElementById('activeSessions').textContent = s.activeSessions || 0;
+                        document.getElementById('totalMessages').textContent = s.totalMessages || 0;
+                        document.getElementById('totalAudioChunks').textContent = s.totalAudioChunks || 0;
+                        // optionally update chart as well
+                        if (typeof dashboard !== 'undefined') {
+                            dashboard.updateChart(s);
+                        }
+                    }
+                });
+                // sessions list updates
+                window.dashboardSocket.on('sessions.update', (payload) => {
+                    try {
+                        if (payload && Array.isArray(payload.sessions) && typeof dashboard !== 'undefined') {
+                            dashboard.renderSessions(payload.sessions || []);
+                        }
+                    } catch (e) {
+                        console.warn('Failed to apply sessions.update', e && e.message);
+                    }
+                });
+            } catch (e) {
+                console.warn('Socket.IO not available for realtime dashboard:', e && e.message);
+            }
+        })();
+        
+            // Header nav tab handling: show/hide dashboard sections
+            (function setupNavTabs(){
+                const navLinks = Array.from(document.querySelectorAll('.nav-link'));
+                const sections = Array.from(document.querySelectorAll('#section-overview, #section-sessions, #section-analytics, #section-settings'));
+
+                function showSection(id){
+                    sections.forEach(s => {
+                        s.style.display = (s.id === id) ? '' : 'none';
+                    });
+                    navLinks.forEach(l => l.classList.toggle('active', l.dataset && l.dataset.section === id));
+                }
+
+                navLinks.forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        // Only prevent default for section links (href="#")
+                        if (link.getAttribute('href') === '#') {
+                            e.preventDefault();
+                            const target = link.dataset && link.dataset.section;
+                            if(target) showSection(target);
+                        }
+                        // Let other links (like /users) navigate normally
+                    });
+                });
+
+                // initialize view based on the active nav link or default to overview
+                const active = navLinks.find(l => l.classList.contains('active'));
+                const startSection = (active && active.dataset && active.dataset.section) || 'section-overview';
+                showSection(startSection);
+            })();
+
+        // Admin actions: dispatch human and close call (emit to server)
+        function dispatchHuman(sessionId) {
+            if (!confirm('Take over this conversation? You will be connected to the customer.')) return;
+            try {
+                if (window.dashboardSocket && window.dashboardSocket.connected) {
+                    window.dashboardSocket.emit('dispatch-human', { sessionId, reason: 'manual_admin_takeover' });
+                    // Open agent interface in new window to handle the call
+                    window.open(`/?session=${sessionId}&mode=admin`, '_blank', 'width=1200,height=800');
+                    alert('You are now connected to the customer. Check the new window.');
+                } else {
+                    alert('Socket not connected');
+                }
+            } catch (e) { console.error(e); alert('Failed to dispatch'); }
+        }
+
+        function closeCall(sessionId) {
+            if (!confirm('Close this call and mark as completed?')) return;
+            try {
+                if (window.dashboardSocket && window.dashboardSocket.connected) {
+                    window.dashboardSocket.emit('close-call', { sessionId, reason: 'manual_admin_close' });
+                    alert('Close requested');
+                } else {
+                    alert('Socket not connected');
+                }
+            } catch (e) { console.error(e); alert('Failed to send close request'); }
+        }
+        // Check authentication
+        async function checkAuth() {
+            const token = localStorage.getItem('icaai_token');
+            if (!token) {
+                // Show login message with redirect
+                document.body.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                        <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; max-width: 400px;">
+                            <div style="color: #ef4444; font-size: 48px; margin-bottom: 16px;">🔒</div>
+                            <h2 style="color: #1e293b; margin-bottom: 16px;">Login Required</h2>
+                            <p style="color: #64748b; margin-bottom: 24px;">You need to login first to access the dashboard.</p>
+                            <p style="color: #64748b; margin-bottom: 24px; font-size: 14px;">Use admin account: maskiryz23@gmail.com or kiryzsu@gmail.com</p>
+                            <button onclick="window.location.href='/login.html'" style="background: #000000; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer; width: 100%;">Login Now</button>
+                        </div>
+                    </div>
+                `;
+                setTimeout(() => {
+                    window.location.href = '/login.html?redirect=dashboard';
+                }, 3000);
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/user', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) {
+                    localStorage.removeItem('icaai_token');
+                    window.location.href = '/login.html';
+                    return;
+                }
+                
+                const data = await response.json();
+                if (!data.user.isAdmin) {
+                    alert('Admin access required');
+                    window.location.href = '/';
+                }
+            } catch (error) {
+                localStorage.removeItem('icaai_token');
+                window.location.href = '/login.html';
+            }
+        }
+        
+        checkAuth();
+        
+        function logout() {
+            localStorage.removeItem('icaai_token');
+            window.location.href = '/auth/logout';
+        }
+        
+        // Dashboard data management
+        class Dashboard {
+            constructor() {
+                this.stats = {
+                    totalSessions: 0,
+                    activeSessions: 0,
+                    totalMessages: 0,
+                    totalAudioChunks: 0
+                };
+                this.chartData = [];
+                this.init();
+            }
+            
+            async init() {
+                // Load immediately
+                await this.loadStats();
+                this.setupChart();
+                this.loadSessions();
+                this.loadSettings();
+                
+                // Auto-refresh every 2 seconds for real-time feel
+                this.refreshInterval = setInterval(() => {
+                    this.loadStats();
+                    this.loadSessions();
+                }, 2000);
+            }
+            
+            async loadSettings() {
+                try {
+                    const token = localStorage.getItem('icaai_token');
+                    const response = await fetch('/api/config', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (response.ok) {
+                        const config = await response.json();
+                        document.getElementById('agentInstructions').value = config.instructions || '';
+                        document.getElementById('agentVoice').value = config.voice || 'alloy';
+                        document.getElementById('agentTemperature').value = config.temperature || 0.7;
+                    }
+                } catch (error) {
+                    console.error('Failed to load settings:', error);
+                }
+            }
+            
+            updateRefreshInterval(interval) {
+                if (this.refreshInterval) {
+                    clearInterval(this.refreshInterval);
+                }
+                
+                this.refreshInterval = setInterval(() => {
+                    this.loadStats();
+                    this.loadSessions();
+                }, interval);
+            }
+            
+            async loadStats() {
+                try {
+                    const token = localStorage.getItem('icaai_token');
+                    const response = await fetch('/api/monitoring', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.updateStats(data.stats);
+                        this.updateChart(data.stats);
+                    }
+                } catch (error) {
+                    console.error('Failed to load stats:', error);
+                }
+            }
+            
+            updateStats(stats) {
+                const totalSessions = stats.totalSessions || 0;
+                const activeSessions = stats.activeSessions || 0;
+                const totalMessages = stats.totalMessages || 0;
+                const totalAudioChunks = stats.totalAudioChunks || 0;
+                
+                // Animate number changes
+                this.animateValue('totalSessions', totalSessions);
+                this.animateValue('activeSessions', activeSessions);
+                this.animateValue('totalMessages', totalMessages);
+                this.animateValue('totalAudioChunks', totalAudioChunks);
+            }
+            
+            animateValue(elementId, newValue) {
+                const element = document.getElementById(elementId);
+                if (!element) return;
+                
+                const currentValue = parseInt(element.textContent) || 0;
+                if (currentValue === newValue) return;
+                
+                // Simple update with highlight effect
+                element.textContent = newValue;
+                element.style.color = '#3b82f6';
+                setTimeout(() => {
+                    element.style.color = '';
+                }, 500);
+            }
+            
+            setupChart() {
+                const canvas = document.getElementById('usageChart');
+                const ctx = canvas.getContext('2d');
+                
+                // Simple chart implementation
+                this.drawChart(ctx, canvas.width, canvas.height);
+            }
+            
+            drawChart(ctx, width, height) {
+                ctx.clearRect(0, 0, width, height);
+                
+                // Draw grid
+                ctx.strokeStyle = '#f1f5f9';
+                ctx.lineWidth = 1;
+                
+                for (let i = 0; i <= 10; i++) {
+                    const y = (height / 10) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
+                
+                // Draw sample data
+                if (this.chartData.length > 1) {
+                    ctx.strokeStyle = '#3b82f6';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    
+                    this.chartData.forEach((point, index) => {
+                        const x = (width / (this.chartData.length - 1)) * index;
+                        const y = height - (point.value / 100) * height;
+                        
+                        if (index === 0) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    });
+                    
+                    ctx.stroke();
+                }
+            }
+            
+            updateChart(stats) {
+                this.chartData.push({
+                    time: Date.now(),
+                    value: stats.totalMessages || 0
+                });
+                
+                // Keep only last 20 points
+                if (this.chartData.length > 20) {
+                    this.chartData.shift();
+                }
+                
+                this.setupChart();
+            }
+            
+            async loadSessions() {
+                try {
+                    const response = await fetch('http://127.0.0.1:8004/call-logs');
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.renderSessions(data.logs || []);
+                        // keep dashboard sessions in sync with server-emitted sessions if available
+                    }
+                } catch (error) {
+                    console.error('Failed to load sessions:', error);
+                }
+            }
+            
+            renderSessions(sessions) {
+                const tbody = document.getElementById('sessionsTableBody');
+                tbody.innerHTML = '';
+                
+                sessions.slice(0, 10).forEach(session => {
+                    const row = document.createElement('tr');
+                    const statusClass = session.status === 'active' ? 'status-active' : 
+                                      session.status === 'completed' ? 'status-completed' : 'status-error';
+                    
+                    row.innerHTML = `
+                        <td><code>${session.session_id.substring(0, 12)}...</code></td>
+                        <td><span class="status-badge ${statusClass}">${session.status}</span></td>
+                        <td>${session.duration_seconds != null ? Math.floor(session.duration_seconds/60) + 'm ' + (session.duration_seconds%60) + 's' : 'Active'}</td>
+                                                <td>${session.message_count}</td>
+                                                <td>${session.readable_start || (session.start_time ? this.formatTime(session.start_time) : 'Unknown')}</td>
+                                                <td>
+                                                    <button class="btn" onclick="viewSession('${session.session_id}')">View</button>
+                                                    <button class="btn" onclick="dispatchHuman('${session.session_id}')">Dispatch</button>
+                                                    <button class="btn" onclick="closeCall('${session.session_id}')">Close</button>
+                                                </td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+            }
+            
+            formatDuration(start, end) {
+                if (!end) return 'Active';
+                const duration = new Date(end) - new Date(start);
+                const minutes = Math.floor(duration / 60000);
+                const seconds = Math.floor((duration % 60000) / 1000);
+                return `${minutes}m ${seconds}s`;
+            }
+            
+            formatTime(timestamp) {
+                return new Date(timestamp).toLocaleString();
+            }
+        }
+        
+        async function viewSession(sessionId) {
+            try {
+                const response = await fetch(`http://127.0.0.1:8004/call-logs/${sessionId}`);
+                if (!response.ok) throw new Error('Failed to load session');
+                
+                const session = await response.json();
+                showSessionModal(session);
+            } catch (error) {
+                console.error('Error loading session:', error);
+                alert('Failed to load session details');
+            }
+        }
+        
+        function showSessionModal(session) {
+            const modal = document.getElementById('sessionModal');
+            const content = document.getElementById('sessionDetailContent');
+            
+            // Format duration
+            let duration = 'Active';
+            if (session.start_time && session.messages && session.messages.length > 0) {
+                const lastMsg = session.messages[session.messages.length - 1];
+                if (lastMsg.timestamp) {
+                    const durationMs = new Date(lastMsg.timestamp) - new Date(session.start_time);
+                    const minutes = Math.floor(durationMs / 60000);
+                    const seconds = Math.floor((durationMs % 60000) / 1000);
+                    duration = `${minutes}m ${seconds}s`;
+                }
+            }
+            
+            // Build messages HTML
+            let messagesHtml = '';
+            if (session.messages && session.messages.length > 0) {
+                messagesHtml = session.messages.map(msg => {
+                    const type = msg.type || msg.participant_type || 'system';
+                    const time = new Date(msg.timestamp).toLocaleTimeString();
+                    return `
+                        <div class="message-item ${type}">
+                            <div class="message-header">
+                                <span class="message-type">${type}</span>
+                                <span class="message-time">${time}</span>
+                            </div>
+                            <div class="message-text">${msg.message || msg.text || ''}</div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                messagesHtml = '<p style="color: #64748b; text-align: center;">No messages yet</p>';
+            }
+            
+            content.innerHTML = `
+                <div class="session-detail">
+                    <div class="detail-row">
+                        <div class="detail-label">Session ID:</div>
+                        <div class="detail-value"><code>${session.session_id}</code></div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Status:</div>
+                        <div class="detail-value">
+                            <span class="status-badge status-${session.status}">${session.status || 'unknown'}</span>
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Started:</div>
+                        <div class="detail-value">${session.start_time ? new Date(session.start_time).toLocaleString() : 'Unknown'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Duration:</div>
+                        <div class="detail-value">${duration}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Total Messages:</div>
+                        <div class="detail-value">${session.session_stats?.total_messages || session.messages?.length || 0}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Order Status:</div>
+                        <div class="detail-value">${session.order_status || 'none'}</div>
+                    </div>
+                </div>
+                
+                <div class="messages-list">
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #0f172a;">📝 Conversation History</h3>
+                    ${messagesHtml}
+                </div>
+                
+                <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
+                    <button class="btn" onclick="closeSessionModal()">Close</button>
+                    <button class="btn btn-primary" onclick="dispatchHuman('${session.session_id}'); closeSessionModal();">🎧 Dispatch to Human</button>
+                </div>
+            `;
+            
+            modal.classList.add('show');
+        }
+        
+        function closeSessionModal() {
+            const modal = document.getElementById('sessionModal');
+            modal.classList.remove('show');
+        }
+        
+        async function saveConfig(field, customValue = null) {
+            let value = customValue;
+            
+            if (value === null) {
+                const element = document.getElementById(`agent${field.charAt(0).toUpperCase() + field.slice(1)}`) || 
+                               document.getElementById(field.replace('_', ''));
+                if (element) {
+                    value = element.type === 'checkbox' ? element.checked : element.value;
+                }
+            }
+            
+            try {
+                const token = localStorage.getItem('icaai_token');
+                const payload = { [field]: field === 'temperature' ? parseFloat(value) : value };
+                
+                const response = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    showSaveIndicator(field);
+                }
+            } catch (error) {
+                console.error('Failed to save config:', error);
+            }
+        }
+        
+        function showSaveIndicator(field) {
+            const indicator = document.getElementById(`${field}Saved`);
+            if (indicator) {
+                indicator.style.opacity = '1';
+                setTimeout(() => {
+                    indicator.style.opacity = '0';
+                }, 2000);
+            }
+        }
+        
+        function updateRefreshInterval() {
+            const interval = parseInt(document.getElementById('refreshInterval').value) * 1000;
+            dashboard.updateRefreshInterval(interval);
+        }
+        
+        async function resetToDefaults() {
+            if (confirm('Reset all settings to defaults?')) {
+                document.getElementById('agentInstructions').value = 'Anda adalah Interactive Call Agent AI yang membantu pelanggan dengan ramah dan profesional.';
+                document.getElementById('agentVoice').value = 'alloy';
+                document.getElementById('agentTemperature').value = '0.7';
+                
+                const token = localStorage.getItem('icaai_token');
+                await fetch('/api/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        instructions: 'Anda adalah Interactive Call Agent AI yang membantu pelanggan dengan ramah dan profesional.',
+                        voice: 'alloy',
+                        temperature: 0.7
+                    })
+                });
+            }
+        }
+        
+        function exportConfig() {
+            const config = {
+                instructions: document.getElementById('agentInstructions').value,
+                voice: document.getElementById('agentVoice').value,
+                temperature: document.getElementById('agentTemperature').value
+            };
+            
+            const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'icaai-config.json';
+            a.click();
+        }
+        
+        async function testGreeting() {
+            try {
+                await fetch('/debug/send-greeting', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: 'Test greeting from dashboard' })
+                });
+                alert('Test greeting sent to active sessions');
+            } catch (error) {
+                alert('Failed to send test greeting');
+            }
+        }
+        
+        function clearLogs() {
+            if (confirm('Clear all session logs?')) {
+                alert('Log clearing not implemented yet');
+            }
+        }
+        
+        function restartSystem() {
+            if (confirm('Restart the system? This will disconnect all active sessions.')) {
+                alert('System restart not implemented yet');
+            }
+        }
+        
+        function toggleTextOnlyMode() {
+            const enabled = document.getElementById('textOnlyMode').checked;
+            if (enabled) {
+                if (confirm('Enable text-only mode? This will disable audio but reduce costs by 95%.')) {
+                    saveConfig('text_only_mode', true);
+                    alert('Text-only mode enabled. Restart required.');
+                } else {
+                    document.getElementById('textOnlyMode').checked = false;
+                }
+            } else {
+                saveConfig('text_only_mode', false);
+            }
+        }
+        
+        function saveBudgetLimit() {
+            const limit = document.getElementById('dailyBudget').value;
+            localStorage.setItem('dailyBudgetLimit', limit);
+            alert(`Daily budget limit set to $${limit}`);
+        }
+        
+        function enableEmergencyMode() {
+            if (confirm('Enable emergency mode? This will immediately switch to text-only and disconnect all audio sessions.')) {
+                document.getElementById('textOnlyMode').checked = true;
+                document.getElementById('enableFallback').checked = true;
+                document.getElementById('maxTokens').value = '50';
+                document.getElementById('sessionTimeout').value = '2';
+                
+                // Save all cost-saving settings
+                saveConfig('text_only_mode', true);
+                saveConfig('enable_fallback', true);
+                saveConfig('max_tokens', 50);
+                saveConfig('session_timeout', 2);
+                
+                alert('Emergency mode activated! All sessions will be text-only.');
+            }
+        }
+        
+        // Initialize dashboard
+        const dashboard = new Dashboard();
+    </script>
+</body>
+</html>

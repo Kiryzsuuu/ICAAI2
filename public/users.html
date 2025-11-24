@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - ICAAI</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+        
+        .header {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo img { height: 32px; }
+        
+        .logo-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background: #ffffff;
+            color: #374151;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        .btn-primary:hover { background: #2563eb; }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            border-color: #ef4444;
+        }
+        
+        .btn-danger:hover { background: #dc2626; }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+            border-color: #10b981;
+        }
+        
+        .btn-success:hover { background: #059669; }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+        
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .users-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+        }
+        
+        .search-bar {
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+        }
+        
+        .search-bar input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .users-table th {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 2px solid #e2e8f0;
+            font-weight: 600;
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        .users-table td {
+            padding: 16px 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .users-table tr:hover {
+            background: #f8fafc;
+        }
+        
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .badge-admin {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .badge-user {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .action-btns button {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <img src="https://www.softwareone.com/-/media/images/logos/softwareone-logo-blk.svg?iar=0&hash=6A277FF39328B4D79A071F4A9F95F301" alt="SoftwareOne">
+            <div class="logo-text">User Management</div>
+        </div>
+        
+        <div>
+            <a href="/dashboard" class="btn">Back to Dashboard</a>
+            <button class="btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Registered Users</h1>
+            <div class="actions">
+                <button class="btn btn-success" onclick="exportPDF()">📄 Export PDF</button>
+                <button class="btn btn-primary" onclick="refreshUsers()">🔄 Refresh</button>
+            </div>
+        </div>
+        
+        <div class="users-card">
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Search by name, email, phone, company, or role..." onkeyup="filterUsers()">
+            </div>
+            
+            <table class="users-table" id="usersTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Company</th>
+                        <th>Role</th>
+                        <th>Provider</th>
+                        <th>Registered</th>
+                        <th>Admin</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <!-- Users will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        let allUsers = [];
+        
+        async function checkAuth() {
+            const token = localStorage.getItem('icaai_token');
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/user', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) {
+                    localStorage.removeItem('icaai_token');
+                    window.location.href = '/login.html';
+                    return;
+                }
+                
+                const data = await response.json();
+                if (!data.user.isAdmin) {
+                    alert('Admin access required');
+                    window.location.href = '/';
+                }
+            } catch (error) {
+                localStorage.removeItem('icaai_token');
+                window.location.href = '/login.html';
+            }
+        }
+        
+        function logout() {
+            localStorage.removeItem('icaai_token');
+            window.location.href = '/auth/logout';
+        }
+        
+        async function loadUsers() {
+            try {
+                const token = localStorage.getItem('icaai_token');
+                const response = await fetch('/api/admin/users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    allUsers = data.users;
+                    renderUsers(allUsers);
+                }
+            } catch (error) {
+                console.error('Failed to load users:', error);
+            }
+        }
+        
+        function renderUsers(users) {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '';
+            
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${user.name}</strong></td>
+                    <td>${user.email}</td>
+                    <td>${user.phone}</td>
+                    <td>${user.company}</td>
+                    <td>${user.role}</td>
+                    <td><span style="text-transform: capitalize;">${user.provider}</span></td>
+                    <td>${new Date(user.createdAt).toLocaleDateString('id-ID')}</td>
+                    <td>
+                        <span class="badge ${user.isAdmin ? 'badge-admin' : 'badge-user'}">
+                            ${user.isAdmin ? 'Admin' : 'User'}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-btns">
+                            ${!user.isAdmin ? 
+                                `<button class="btn btn-primary" onclick="makeAdmin('${user.id}')">Make Admin</button>` :
+                                `<button class="btn" onclick="removeAdmin('${user.id}')">Remove Admin</button>`
+                            }
+                            <button class="btn btn-danger" onclick="deleteUser('${user.id}', '${user.name}')">Delete</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        function filterUsers() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allUsers.filter(user => 
+                user.name.toLowerCase().includes(searchTerm) ||
+                user.email.toLowerCase().includes(searchTerm) ||
+                user.phone.toLowerCase().includes(searchTerm) ||
+                user.company.toLowerCase().includes(searchTerm) ||
+                user.role.toLowerCase().includes(searchTerm)
+            );
+            renderUsers(filtered);
+        }
+        
+        async function makeAdmin(userId) {
+            if (!confirm('Make this user an admin?')) return;
+            
+            try {
+                const token = localStorage.getItem('icaai_token');
+                const response = await fetch('/api/admin/toggle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ userId, makeAdmin: true })
+                });
+                
+                if (response.ok) {
+                    alert('User promoted to admin');
+                    loadUsers();
+                }
+            } catch (error) {
+                alert('Failed to make admin');
+            }
+        }
+        
+        async function removeAdmin(userId) {
+            if (!confirm('Remove admin privileges from this user?')) return;
+            
+            try {
+                const token = localStorage.getItem('icaai_token');
+                const response = await fetch('/api/admin/toggle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ userId, makeAdmin: false })
+                });
+                
+                if (response.ok) {
+                    alert('Admin privileges removed');
+                    loadUsers();
+                }
+            } catch (error) {
+                alert('Failed to remove admin');
+            }
+        }
+        
+        async function deleteUser(userId, userName) {
+            if (!confirm(`Delete user "${userName}"? This action cannot be undone.`)) return;
+            
+            try {
+                const token = localStorage.getItem('icaai_token');
+                const response = await fetch(`/api/admin/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    alert('User deleted successfully');
+                    loadUsers();
+                } else {
+                    alert('Failed to delete user');
+                }
+            } catch (error) {
+                alert('Error deleting user');
+            }
+        }
+        
+        function refreshUsers() {
+            loadUsers();
+        }
+        
+        async function exportPDF() {
+            try {
+                const token = localStorage.getItem('icaai_token');
+                const response = await fetch('/api/admin/users/export', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) throw new Error('Export failed');
+                
+                const data = await response.json();
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Title
+                doc.setFontSize(18);
+                doc.text('ICAAI - Registered Users', 14, 20);
+                
+                doc.setFontSize(10);
+                doc.text(`Generated: ${new Date().toLocaleString('id-ID')}`, 14, 28);
+                
+                // Table
+                doc.autoTable({
+                    startY: 35,
+                    head: [['Name', 'Email', 'Phone', 'Company', 'Role', 'Provider', 'Registered', 'Admin']],
+                    body: data.users.map(u => [
+                        u.name,
+                        u.email,
+                        u.phone,
+                        u.company,
+                        u.role,
+                        u.provider,
+                        u.createdAt,
+                        u.isAdmin
+                    ]),
+                    styles: { fontSize: 7 },
+                    headStyles: { fillColor: [59, 130, 246] }
+                });
+                
+                doc.save(`ICAAI-Users-${new Date().toISOString().split('T')[0]}.pdf`);
+            } catch (error) {
+                alert('Failed to export PDF');
+                console.error(error);
+            }
+        }
+        
+        checkAuth();
+        loadUsers();
+    </script>
+</body>
+</html>

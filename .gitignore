@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+backend/.venv/
+backend/__pycache__/
+
+# Environment
+.env
+.env.local
+.env.azure
+
+# Data files
+backend/users.json
+backend/orders.json
+backend/uploaded_pdfs/
+backend/call_logs/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build
+dist/
+build/

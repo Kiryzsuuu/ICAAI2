@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - ICAAI</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: url('https://www.verdict.co.uk/wp-content/uploads/2024/12/acquisition-shutterstock_2346696327.jpg') center/cover no-repeat fixed;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 0;
+        }
+        
+        .register-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo h1 {
+            font-size: 32px;
+            color: #000000;
+            margin-bottom: 8px;
+        }
+        
+        .logo p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #374151;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #000000;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .register-btn {
+            width: 100%;
+            padding: 14px;
+            background: #000000;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .register-btn:hover {
+            background: #000000;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .register-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .divider {
+            text-align: center;
+            margin: 24px 0;
+            color: #9ca3af;
+            font-size: 14px;
+            position: relative;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: #e5e7eb;
+        }
+        
+        .divider::before { left: 0; }
+        .divider::after { right: 0; }
+        
+        .oauth-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .oauth-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 12px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            color: #374151;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        
+        .oauth-btn:hover {
+            border-color: #000000;
+            background: #f9fafb;
+        }
+        
+        .login-link {
+            margin-top: 24px;
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .login-link p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .login-link a {
+            color: #000000;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+        
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="logo">
+            <img src="https://www.softwareone.com/-/media/images/logos/softwareone-logo-blk.svg?iar=0&hash=6A277FF39328B4D79A071F4A9F95F301" alt="SoftwareOne" style="height: 32px; margin-bottom: 12px;">
+            <h1 style="font-size: 28px; color: #111827; margin-bottom: 4px;">ICAAI</h1>
+            <p>Daftar Akun Baru</p>
+        </div>
+        
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+        
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="name">Nama Lengkap</label>
+                <input type="text" id="name" name="name" required placeholder="Masukkan nama lengkap">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required placeholder="nama@email.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Nomor Telepon</label>
+                <input type="tel" id="phone" name="phone" required placeholder="08xxxxxxxxxx">
+            </div>
+            
+            <div class="form-group">
+                <label for="company">Perusahaan</label>
+                <input type="text" id="company" name="company" required placeholder="Nama perusahaan">
+            </div>
+            
+            <div class="form-group">
+                <label for="role">Role/Jabatan</label>
+                <input type="text" id="role" name="role" required placeholder="Contoh: Manager, Staff, Developer">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required placeholder="Minimal 6 karakter">
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmPassword">Konfirmasi Password</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Ulangi password">
+            </div>
+            
+            <button type="submit" class="register-btn" id="submitBtn">Daftar</button>
+        </form>
+        
+
+        
+        <div class="login-link">
+            <p>Sudah punya akun? <a href="/login.html">Login di sini</a></p>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const company = document.getElementById('company').value;
+            const role = document.getElementById('role').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            const errorMsg = document.getElementById('errorMessage');
+            const successMsg = document.getElementById('successMessage');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'none';
+            
+            if (password !== confirmPassword) {
+                errorMsg.textContent = 'Password tidak cocok!';
+                errorMsg.style.display = 'block';
+                return;
+            }
+            
+            if (password.length < 6) {
+                errorMsg.textContent = 'Password minimal 6 karakter!';
+                errorMsg.style.display = 'block';
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Mendaftar...';
+            
+            try {
+                const response = await fetch('/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, phone, company, role, password })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    successMsg.textContent = 'Registrasi berhasil! Redirecting...';
+                    successMsg.style.display = 'block';
+                    setTimeout(() => {
+                        window.location.href = '/login.html';
+                    }, 1500);
+                } else {
+                    errorMsg.textContent = result.error || 'Registrasi gagal!';
+                    errorMsg.style.display = 'block';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Daftar';
+                }
+            } catch (error) {
+                errorMsg.textContent = 'Terjadi kesalahan. Silakan coba lagi.';
+                errorMsg.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Daftar';
+            }
+        });
+    </script>
+</body>
+</html>

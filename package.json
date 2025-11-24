@@ -1,0 +1,42 @@
+{
+  "name": "icaai-realtime-playground",
+  "version": "1.0.0",
+  "description": "Interactive Call Agent AI - Realtime Playground",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "backend": "cd backend && python main.py",
+    "dev-full": "concurrently \"npm run dev\" \"npm run backend\"",
+    "install-deps": "npm install"
+  },
+  "dependencies": {
+    "@azure/cosmos": "^4.8.0",
+    "bcryptjs": "^3.0.3",
+    "concurrently": "^8.2.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.18.2",
+    "express-session": "^1.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "microsoft-cognitiveservices-speech-sdk": "^1.29.0",
+    "nodemailer": "^7.0.10",
+    "passport": "^0.7.0",
+    "passport-azure-ad": "^4.3.5",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-local": "^1.0.0",
+    "passport-microsoft": "^2.1.0",
+    "socket.io": "^4.7.2",
+    "socket.io-client": "^4.8.1",
+    "ws": "^8.14.2"
+  },
+  "keywords": [
+    "ai",
+    "realtime",
+    "openai",
+    "voice",
+    "chat"
+  ],
+  "author": "ICAAI Team",
+  "license": "MIT"
+}
