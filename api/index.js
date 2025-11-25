@@ -177,5 +177,70 @@ app.post('/auth/login', async (req, res) => {
   }
 });
 
+// Get current user info (validates token)
+app.get('/api/user', async (req, res) => {
+  try {
+    const jwt = require('jsonwebtoken');
+    const { CosmosClient } = require('@azure/cosmos');
+    
+    // Get token from Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+    
+    const token = authHeader.split(' ')[1];
+    
+    // Verify token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    
+    // Get user from Cosmos DB
+    const endpoint = process.env.COSMOS_ENDPOINT;
+    const key = process.env.COSMOS_KEY;
+    const databaseId = process.env.COSMOS_DATABASE || 'icaai-db';
+    
+    if (!endpoint || !key) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+    
+    const client = new CosmosClient({ endpoint, key });
+    const database = client.database(databaseId);
+    const usersContainer = database.container('users');
+    
+    const querySpec = {
+      query: 'SELECT * FROM c WHERE c.email = @email',
+      parameters: [{ name: '@email', value: decoded.email }]
+    };
+    const { resources: users } = await usersContainer.items.query(querySpec).fetchAll();
+    
+    if (!users || users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = users[0];
+    
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        phone: user.phone,
+        company: user.company,
+        role: user.role,
+        isAdmin: user.isAdmin,
+        provider: user.provider
+      }
+    });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ error: 'Terjadi kesalahan: ' + error.message });
+  }
+});
+
 // Export for Vercel
 module.exports = app;
