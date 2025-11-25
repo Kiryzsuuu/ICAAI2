@@ -1,13 +1,11 @@
 // Vercel serverless function entry point
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 
@@ -175,11 +173,6 @@ app.post('/auth/login', async (req, res) => {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Terjadi kesalahan saat login: ' + error.message });
   }
-});
-
-// Catch-all for static files
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public', 'index.html'));
 });
 
 // Export for Vercel
