@@ -5,6 +5,11 @@ const endpoint = process.env.COSMOS_ENDPOINT;
 const key = process.env.COSMOS_KEY;
 const databaseId = process.env.COSMOS_DATABASE || 'icaai-db';
 
+// Validate required environment variables
+if (!endpoint || !key) {
+  throw new Error('Missing required Cosmos DB environment variables: COSMOS_ENDPOINT and COSMOS_KEY must be set');
+}
+
 const client = new CosmosClient({ endpoint, key });
 const database = client.database(databaseId);
 
