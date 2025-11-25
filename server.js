@@ -54,11 +54,11 @@ initAuth(app);
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 if (!OPENAI_API_KEY) {
-  console.error('ERROR: OPENAI_API_KEY not found in environment (.env)');
-  process.exit(1);
+  console.error('WARNING: OPENAI_API_KEY not found in environment (.env)');
+  console.error('OpenAI features will not work');
+} else {
+  console.log('Using OpenAI API with key:', OPENAI_API_KEY.substring(0, 20) + '...');
 }
-
-console.log('Using OpenAI API with key:', OPENAI_API_KEY.substring(0, 20) + '...');
 
 // Store active sessions and stats
 const activeSessions = new Map();
