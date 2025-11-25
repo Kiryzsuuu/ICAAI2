@@ -1,9 +1,7 @@
 // Vercel serverless function entry point
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const crypto = require('crypto');
 
 const app = express();
 
@@ -13,45 +11,58 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 
-// Lazy load modules to avoid initialization errors
-let db;
-let sendWelcomeEmail;
-let generateToken;
-
-function loadModules() {
-  if (!db) {
-    db = require('../cosmosdb');
-    const mailer = require('../mailer');
-    sendWelcomeEmail = mailer.sendWelcomeEmail;
-    const authCosmos = require('../auth-cosmos');
-    generateToken = authCosmos.generateToken;
-  }
-  return { db, sendWelcomeEmail, generateToken };
-}
-
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    env: {
+      hasCosmosEndpoint: !!process.env.COSMOS_ENDPOINT,
+      hasCosmosKey: !!process.env.COSMOS_KEY,
+      hasCosmosDatabase: !!process.env.COSMOS_DATABASE
+    }
+  });
 });
 
 // Register endpoint
 app.post('/auth/register', async (req, res) => {
   try {
-    const { db, sendWelcomeEmail, generateToken } = loadModules();
+    // Lazy load modules
+    const { CosmosClient } = require('@azure/cosmos');
+    const bcrypt = require('bcryptjs');
+    const jwt = require('jsonwebtoken');
+    
     const { email, password, name, phone, company } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email dan password wajib diisi' });
     }
 
+    // Initialize Cosmos DB client
+    const endpoint = process.env.COSMOS_ENDPOINT;
+    const key = process.env.COSMOS_KEY;
+    const databaseId = process.env.COSMOS_DATABASE || 'icaai-db';
+
+    if (!endpoint || !key) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    const client = new CosmosClient({ endpoint, key });
+    const database = client.database(databaseId);
+    const usersContainer = database.container('users');
+
     // Check if user already exists
-    const existingUser = await db.getUserByEmail(email);
-    if (existingUser) {
+    const querySpec = {
+      query: 'SELECT * FROM c WHERE c.email = @email',
+      parameters: [{ name: '@email', value: email }]
+    };
+    const { resources: existingUsers } = await usersContainer.items.query(querySpec).fetchAll();
+    
+    if (existingUsers && existingUsers.length > 0) {
       return res.status(400).json({ error: 'Email sudah terdaftar' });
     }
 
     // Hash password
-    const bcrypt = require('bcryptjs');
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create new user
@@ -67,17 +78,14 @@ app.post('/auth/register', async (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    await db.createUser(newUser);
-
-    // Send welcome email
-    try {
-      await sendWelcomeEmail(email, newUser.name);
-    } catch (emailError) {
-      console.error('Failed to send welcome email:', emailError);
-    }
+    await usersContainer.items.create(newUser);
 
     // Generate token
-    const token = generateToken(newUser);
+    const token = jwt.sign(
+      { id: newUser.id, email: newUser.email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
     res.status(201).json({
       message: 'Registrasi berhasil',
@@ -91,35 +99,66 @@ app.post('/auth/register', async (req, res) => {
     });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ error: 'Terjadi kesalahan saat registrasi' });
+    res.status(500).json({ error: 'Terjadi kesalahan saat registrasi: ' + error.message });
   }
 });
 
 // Login endpoint
 app.post('/auth/login', async (req, res) => {
   try {
-    const { db, generateToken } = loadModules();
+    // Lazy load modules
+    const { CosmosClient } = require('@azure/cosmos');
+    const bcrypt = require('bcryptjs');
+    const jwt = require('jsonwebtoken');
+    
     const { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email dan password wajib diisi' });
     }
 
+    // Initialize Cosmos DB client
+    const endpoint = process.env.COSMOS_ENDPOINT;
+    const key = process.env.COSMOS_KEY;
+    const databaseId = process.env.COSMOS_DATABASE || 'icaai-db';
+
+    if (!endpoint || !key) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    const client = new CosmosClient({ endpoint, key });
+    const database = client.database(databaseId);
+    const usersContainer = database.container('users');
+
     // Get user from database
-    const user = await db.getUserByEmail(email);
-    if (!user || user.provider !== 'local') {
+    const querySpec = {
+      query: 'SELECT * FROM c WHERE c.email = @email',
+      parameters: [{ name: '@email', value: email }]
+    };
+    const { resources: users } = await usersContainer.items.query(querySpec).fetchAll();
+    
+    if (!users || users.length === 0) {
+      return res.status(401).json({ error: 'Email atau password salah' });
+    }
+
+    const user = users[0];
+    
+    if (user.provider !== 'local') {
       return res.status(401).json({ error: 'Email atau password salah' });
     }
 
     // Check password
-    const bcrypt = require('bcryptjs');
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ error: 'Email atau password salah' });
     }
 
     // Generate token
-    const token = generateToken(user);
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
     res.json({
       message: 'Login berhasil',
@@ -133,17 +172,11 @@ app.post('/auth/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ error: 'Terjadi kesalahan saat login' });
+    res.status(500).json({ error: 'Terjadi kesalahan saat login: ' + error.message });
   }
 });
 
-// Get current user (simplified without auth middleware)
-app.get('/auth/me', (req, res) => {
-  // In a real app, you'd verify JWT token here
-  res.json({ message: 'Auth endpoint - implement JWT verification' });
-});
-
-// Catch-all for undefined routes
+// Catch-all for static files
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public', 'index.html'));
 });
