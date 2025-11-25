@@ -1,29 +1,40 @@
 // cosmosdb.js - Azure Cosmos DB Client
 const { CosmosClient } = require('@azure/cosmos');
 
-const endpoint = process.env.COSMOS_ENDPOINT;
-const key = process.env.COSMOS_KEY;
-const databaseId = process.env.COSMOS_DATABASE || 'icaai-db';
+let client;
+let database;
+let usersContainer;
+let ordersContainer;
 
-// Validate required environment variables
-if (!endpoint || !key) {
-  throw new Error('Missing required Cosmos DB environment variables: COSMOS_ENDPOINT and COSMOS_KEY must be set');
+// Lazy initialization function
+function initClient() {
+  if (!client) {
+    const endpoint = process.env.COSMOS_ENDPOINT;
+    const key = process.env.COSMOS_KEY;
+    const databaseId = process.env.COSMOS_DATABASE || 'icaai-db';
+    
+    // Validate required environment variables
+    if (!endpoint || !key) {
+      throw new Error('Missing required Cosmos DB environment variables: COSMOS_ENDPOINT and COSMOS_KEY must be set');
+    }
+    
+    client = new CosmosClient({ endpoint, key });
+    database = client.database(databaseId);
+    usersContainer = database.container('users');
+    ordersContainer = database.container('orders');
+  }
+  return { usersContainer, ordersContainer };
 }
-
-const client = new CosmosClient({ endpoint, key });
-const database = client.database(databaseId);
-
-// Containers
-const usersContainer = database.container('users');
-const ordersContainer = database.container('orders');
 
 // User Operations
 async function createUser(user) {
+  const { usersContainer } = initClient();
   const { resource } = await usersContainer.items.create(user);
   return resource;
 }
 
 async function getUserByEmail(email) {
+  const { usersContainer } = initClient();
   const querySpec = {
     query: 'SELECT * FROM c WHERE c.email = @email',
     parameters: [{ name: '@email', value: email }]
@@ -33,6 +44,7 @@ async function getUserByEmail(email) {
 }
 
 async function getUserById(id) {
+  const { usersContainer } = initClient();
   const querySpec = {
     query: 'SELECT * FROM c WHERE c.id = @id',
     parameters: [{ name: '@id', value: id }]
@@ -42,11 +54,13 @@ async function getUserById(id) {
 }
 
 async function getAllUsers() {
+  const { usersContainer } = initClient();
   const { resources } = await usersContainer.items.readAll().fetchAll();
   return resources;
 }
 
 async function updateUser(email, updates) {
+  const { usersContainer } = initClient();
   const user = await getUserByEmail(email);
   if (!user) throw new Error('User not found');
   
@@ -56,6 +70,7 @@ async function updateUser(email, updates) {
 }
 
 async function deleteUser(id, email) {
+  const { usersContainer } = initClient();
   await usersContainer.item(id, email).delete();
 }
 
@@ -78,6 +93,7 @@ async function saveResetToken(token, email, expiry) {
 }
 
 async function getUserByResetToken(token) {
+  const { usersContainer } = initClient();
   const querySpec = {
     query: 'SELECT * FROM c WHERE c.resetToken = @token AND c.resetTokenExpiry > @now',
     parameters: [
@@ -98,11 +114,13 @@ async function clearResetToken(email) {
 
 // Order Operations
 async function createOrder(order) {
+  const { ordersContainer } = initClient();
   const { resource } = await ordersContainer.items.create(order);
   return resource;
 }
 
 async function getOrdersByUser(userEmail) {
+  const { ordersContainer } = initClient();
   const querySpec = {
     query: 'SELECT * FROM c WHERE c.userEmail = @email ORDER BY c.createdAt DESC',
     parameters: [{ name: '@email', value: userEmail }]
@@ -112,6 +130,7 @@ async function getOrdersByUser(userEmail) {
 }
 
 async function getAllOrders() {
+  const { ordersContainer } = initClient();
   const querySpec = {
     query: 'SELECT * FROM c ORDER BY c.createdAt DESC'
   };
