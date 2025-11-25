@@ -208,14 +208,18 @@
                 const result = await response.json();
                 
                 if (result.success) {
+                    // Save token to localStorage
+                    localStorage.setItem('icaai_token', result.token);
+                    localStorage.setItem('icaai_user', JSON.stringify(result.user));
+                    
                     // Check if there's a redirect parameter
                     const urlParams = new URLSearchParams(window.location.search);
                     const redirect = urlParams.get('redirect');
                     
                     if (redirect === 'dashboard') {
-                        window.location.href = '/dashboard.html?token=' + result.token;
+                        window.location.href = '/dashboard.html';
                     } else {
-                        window.location.href = '/?token=' + result.token;
+                        window.location.href = '/';
                     }
                 } else {
                     errorMsg.textContent = result.error || 'Login gagal!';
