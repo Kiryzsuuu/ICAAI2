@@ -7,7 +7,8 @@ const path = require('path');
 const WebSocket = require('ws');
 const fs = require('fs');
 const passport = require('passport');
-const { initAuth, requireAuth, requireAdmin: authRequireAdmin, generateToken, loadUsers, saveUsers } = require('./auth');
+const { initAuth, requireAuth, requireAdmin: authRequireAdmin, generateToken } = require('./auth-cosmos');
+const db = require('./cosmosdb');
 const { sendWelcomeEmail, sendPasswordResetEmail } = require('./mailer');
 const crypto = require('crypto');
 
@@ -273,9 +274,9 @@ app.post('/auth/register', async (req, res) => {
     return res.json({ success: false, error: 'Password minimal 6 karakter' });
   }
   
-  const data = loadUsers();
-  
-  if (data.users.find(u => u.email === email)) {
+  // Check if user exists in Cosmos DB
+  const existingUser = await db.getUserByEmail(email);
+  if (existingUser) {
     return res.json({ success: false, error: 'Email sudah terdaftar' });
   }
   
@@ -294,8 +295,8 @@ app.post('/auth/register', async (req, res) => {
     createdAt: new Date().toISOString()
   };
   
-  data.users.push(newUser);
-  saveUsers(data);
+  // Save to Cosmos DB
+  await db.createUser(newUser);
   
   // Send welcome email
   if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
