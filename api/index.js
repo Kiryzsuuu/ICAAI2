@@ -87,6 +87,7 @@ app.post('/auth/register', async (req, res) => {
     );
 
     res.status(201).json({
+      success: true,
       message: 'Registrasi berhasil',
       user: {
         id: newUser.id,
@@ -160,6 +161,7 @@ app.post('/auth/login', async (req, res) => {
     );
 
     res.json({
+      success: true,
       message: 'Login berhasil',
       user: {
         id: user.id,
