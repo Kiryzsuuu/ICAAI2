@@ -14,7 +14,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ 
-    status: 'ok', 
+    status: 'ok',
+    version: '1.0.1',
     timestamp: new Date().toISOString(),
     env: {
       hasCosmosEndpoint: !!process.env.COSMOS_ENDPOINT,
