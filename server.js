@@ -7,10 +7,11 @@ const path = require('path');
 const WebSocket = require('ws');
 const fs = require('fs');
 const passport = require('passport');
-const { initAuth, requireAuth, requireAdmin: authRequireAdmin, generateToken } = require('./auth-cosmos');
+const { passport: authPassport, requireAuth, requireAdmin: authRequireAdmin, JWT_SECRET } = require('./auth-cosmos');
 const db = require('./cosmosdb');
 const { sendWelcomeEmail, sendPasswordResetEmail } = require('./mailer');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const server = http.createServer(app);
@@ -48,8 +49,13 @@ function broadcastToAdmins(event, payload) {
 app.use(cors());
 app.use(express.json());
 
-// Initialize authentication
-initAuth(app);
+// Initialize passport
+app.use(passport.initialize());
+
+// Helper function to generate JWT token
+function generateToken(user) {
+  return jwt.sign({ id: user.id, email: user.email, isAdmin: user.isAdmin }, JWT_SECRET, { expiresIn: '7d' });
+}
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
