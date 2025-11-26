@@ -7,10 +7,25 @@ const path = require('path');
 const WebSocket = require('ws');
 const fs = require('fs');
 const passport = require('passport');
-const { initAuth, requireAuth, requireAdmin: authRequireAdmin, generateToken } = require('./auth-cosmos');
-const db = require('./cosmosdb');
+const { initAuth, requireAuth, requireAdmin: authRequireAdmin, requireSuperAdmin: authRequireSuperAdmin, generateToken } = require('./auth-mongo');
+const db = require('./mongodb');
 const { sendWelcomeEmail, sendPasswordResetEmail } = require('./mailer');
 const crypto = require('crypto');
+const multer = require('multer');
+
+// Try multiple ways to import pdf-parse
+let pdfParse;
+try {
+  pdfParse = require('pdf-parse');
+} catch (e) {
+  try {
+    const pdfParseModule = require('pdf-parse');
+    pdfParse = pdfParseModule.default || pdfParseModule;
+  } catch (e2) {
+    console.error('Failed to load pdf-parse:', e2);
+    pdfParse = null;
+  }
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -309,33 +324,31 @@ app.post('/auth/register', async (req, res) => {
 app.post('/auth/login', async (req, res) => {
   const { email, password } = req.body;
   
-  const data = loadUsers();
-  const user = data.users.find(u => u.email === email && u.provider === 'local');
-  
-  if (!user) {
-    return res.json({ success: false, error: 'Email atau password salah' });
-  }
-  
-  const bcrypt = require('bcryptjs');
-  const validPassword = await bcrypt.compare(password, user.password);
-  
-  if (!validPassword) {
-    return res.json({ success: false, error: 'Email atau password salah' });
-  }
-  
-  user.isAdmin = data.admins.includes(user.email);
-  const userPayload = { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin };
-  const token = generateToken(userPayload);
-  
-  req.login(user, (err) => {
-    if (err) {
-      return res.json({ success: false, error: 'Login gagal' });
+  try {
+    const user = await db.getUserByEmail(email);
+    
+    if (!user || user.provider !== 'local') {
+      return res.json({ success: false, error: 'Email atau password salah' });
     }
+    
+    const bcrypt = require('bcryptjs');
+    const validPassword = await bcrypt.compare(password, user.password);
+    
+    if (!validPassword) {
+      return res.json({ success: false, error: 'Email atau password salah' });
+    }
+    
+    const userPayload = { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin };
+    const token = generateToken(userPayload);
+    
     res.json({ success: true, token, user: { name: user.name, email: user.email, isAdmin: user.isAdmin } });
-  });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.json({ success: false, error: 'Terjadi kesalahan pada server' });
+  }
 });
 
-app.get('/api/user', (req, res) => {
+app.get('/api/user', async (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) {
     return res.status(401).json({ error: 'No token provided' });
@@ -344,21 +357,24 @@ app.get('/api/user', (req, res) => {
   try {
     const jwt = require('jsonwebtoken');
     const payload = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key-change-this');
-    const data = loadUsers();
-    const user = data.users.find(u => u.email === payload.email);
+    const user = await db.getUserByEmail(payload.email);
     
     if (user) {
+      const userRole = await db.getUserRole(user.email);
       res.json({ 
         user: { 
           name: user.name, 
           email: user.email, 
-          isAdmin: data.admins.includes(user.email) 
+          isAdmin: user.isAdmin || false,
+          role: userRole,
+          isSuperAdmin: userRole === 'superadmin'
         } 
       });
     } else {
       res.status(404).json({ error: 'User not found' });
     }
   } catch (e) {
+    console.error('Get user error:', e);
     res.status(401).json({ error: 'Invalid token' });
   }
 });
@@ -377,89 +393,148 @@ function saveOrders(orders) {
   fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
 }
 
-app.get('/api/orders', requireAuth, (req, res) => {
-  const orders = loadOrders();
-  const data = loadUsers();
-  const isAdmin = data.admins.includes(req.user.email);
-  
-  // Admin sees all orders, regular users see only their orders
-  const userOrders = isAdmin ? orders : orders.filter(o => o.userEmail === req.user.email);
-  res.json({ orders: userOrders, isAdmin });
+app.get('/api/orders', requireAuth, async (req, res) => {
+  try {
+    const orders = await db.getAllOrders();
+    const isAdmin = await db.isAdmin(req.user.email);
+    
+    // Admin sees all orders, regular users see only their orders
+    const userOrders = isAdmin ? orders : orders.filter(o => o.userEmail === req.user.email);
+    res.json({ orders: userOrders, isAdmin });
+  } catch (error) {
+    console.error('Get orders error:', error);
+    res.status(500).json({ error: 'Failed to fetch orders' });
+  }
 });
 
-app.post('/api/orders', requireAuth, (req, res) => {
+app.post('/api/orders', requireAuth, async (req, res) => {
   const { items, total } = req.body;
-  const orders = loadOrders();
   
-  const newOrder = {
-    id: Date.now().toString(),
-    userEmail: req.user.email,
-    userName: req.user.name,
-    items,
-    total,
-    status: 'pending',
-    createdAt: new Date().toISOString()
-  };
-  
-  orders.push(newOrder);
-  saveOrders(orders);
-  
-  res.json({ success: true, order: newOrder });
+  try {
+    const newOrder = {
+      id: Date.now().toString(),
+      userEmail: req.user.email,
+      userName: req.user.name,
+      items,
+      total,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+    
+    await db.createOrder(newOrder);
+    res.json({ success: true, order: newOrder });
+  } catch (error) {
+    console.error('Create order error:', error);
+    res.status(500).json({ success: false, error: 'Failed to create order' });
+  }
 });
 
 // Admin routes
-app.get('/api/admin/users', authRequireAdmin, (req, res) => {
-  const data = loadUsers();
-  const users = data.users.map(u => ({
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    phone: u.phone || '-',
-    company: u.company || '-',
-    role: u.role || '-',
-    provider: u.provider,
-    createdAt: u.createdAt,
-    isAdmin: data.admins.includes(u.email)
-  }));
-  res.json({ users, currentUser: req.user });
+app.get('/api/admin/users', authRequireAdmin, async (req, res) => {
+  try {
+    const users = await db.getAllUsers();
+    const currentUserRole = await db.getUserRole(req.user.email);
+    
+    const formattedUsers = await Promise.all(users.map(async u => {
+      const userRole = await db.getUserRole(u.email);
+      const userId = u._id ? u._id.toString() : (u.id || u.email); // Use _id, custom id, or email as fallback
+      return {
+        id: userId,
+        name: u.name || 'N/A',
+        email: u.email,
+        phone: u.phone || '-',
+        company: u.company || '-',
+        role: u.role || '-',
+        userRole: userRole, // superadmin, admin, user
+        provider: u.provider,
+        createdAt: u.createdAt,
+        isAdmin: u.isAdmin || false,
+        isSuperAdmin: userRole === 'superadmin'
+      };
+    }));
+    
+    res.json({ 
+      users: formattedUsers, 
+      currentUser: {
+        ...req.user,
+        role: currentUserRole,
+        isSuperAdmin: currentUserRole === 'superadmin'
+      }
+    });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
 });
 
-app.delete('/api/admin/users/:id', authRequireAdmin, (req, res) => {
+app.delete('/api/admin/users/:id', authRequireAdmin, async (req, res) => {
   const { id } = req.params;
-  const data = loadUsers();
   
-  const userIndex = data.users.findIndex(u => u.id === id);
-  if (userIndex === -1) {
-    return res.status(404).json({ success: false, error: 'User not found' });
+  try {
+    const user = await db.getUserById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    
+    await db.deleteUserById(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete user' });
   }
-  
-  const user = data.users[userIndex];
-  data.users.splice(userIndex, 1);
-  data.admins = data.admins.filter(e => e !== user.email);
-  
-  saveUsers(data);
-  res.json({ success: true });
 });
 
-app.post('/api/admin/toggle', authRequireAdmin, (req, res) => {
+app.post('/api/admin/toggle', authRequireAdmin, async (req, res) => {
   const { userId, makeAdmin } = req.body;
-  const data = loadUsers();
   
-  const user = data.users.find(u => u.id === userId);
-  if (!user) {
-    return res.status(404).json({ success: false, error: 'User not found' });
-  }
-  
-  if (makeAdmin) {
-    if (!data.admins.includes(user.email)) {
-      data.admins.push(user.email);
+  try {
+    const user = await db.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
     }
-  } else {
-    data.admins = data.admins.filter(e => e !== user.email);
+    
+    // Only super admin can change super admin status
+    const targetUserRole = await db.getUserRole(user.email);
+    const currentUserRole = await db.getUserRole(req.user.email);
+    
+    if (targetUserRole === 'superadmin' && currentUserRole !== 'superadmin') {
+      return res.status(403).json({ success: false, error: 'Cannot modify super admin' });
+    }
+    
+    await db.setAdmin(user.email, makeAdmin);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Toggle admin error:', error);
+    res.status(500).json({ success: false, error: 'Failed to update admin status' });
   }
+});
+
+// Change user role (Super Admin only)
+app.post('/api/admin/change-role', authRequireSuperAdmin, async (req, res) => {
+  const { userId, newRole } = req.body;
   
-  saveUsers(data);
-  res.json({ success: true });
+  try {
+    const user = await db.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    
+    // Prevent changing super admin's role
+    if (user.email === 'maskiryz23@gmail.com' && newRole !== 'superadmin') {
+      return res.status(403).json({ success: false, error: 'Cannot change super admin role' });
+    }
+    
+    if (newRole === 'admin') {
+      await db.setAdmin(user.email, true);
+    } else if (newRole === 'user') {
+      await db.setAdmin(user.email, false);
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Change role error:', error);
+    res.status(500).json({ success: false, error: 'Failed to change user role' });
+  }
 });
 
 // API routes first
@@ -477,13 +552,48 @@ app.post('/api/config', authRequireAdmin, (req, res) => {
 
 // Monitoring dashboard endpoint
 app.get('/api/monitoring', authRequireAdmin, (req, res) => {
-  const sessions = Array.from(activeSessions.values()).map(session => ({
-    sessionId: session.sessionId,
-    isConnected: session.isConnected,
-    hasOngoingResponse: session.hasOngoingResponse,
-    startTime: session.startTime || 'Unknown'
-  }));
-  
+  // Sessions: combine activeSessions and call_logs
+  const sessions = [];
+  const CALL_LOGS_DIR = path.join(__dirname, 'backend', 'call_logs');
+  if (fs.existsSync(CALL_LOGS_DIR)) {
+    const files = fs.readdirSync(CALL_LOGS_DIR).filter(f => f.endsWith('.json'));
+    files.sort();
+    for (const f of files) {
+      try {
+        const raw = fs.readFileSync(path.join(CALL_LOGS_DIR, f), 'utf8');
+        const j = JSON.parse(raw);
+        const startTime = j.start_time || j.startTime || j.startTimeISO || null;
+        const lastMsg = (j.messages && j.messages.length) ? j.messages[j.messages.length-1].timestamp : j.end_time || j.last_message || null;
+        const messageCount = (j.session_stats && j.session_stats.total_messages) ? j.session_stats.total_messages : (j.messages ? j.messages.length : 0);
+        let durationSeconds = null;
+        if (startTime && lastMsg) {
+          try {
+            durationSeconds = Math.max(0, Math.floor((new Date(lastMsg) - new Date(startTime)) / 1000));
+          } catch (e) {
+            durationSeconds = null;
+          }
+        }
+        sessions.push({
+          session_id: j.session_id || j.sessionId || f,
+          status: j.status || 'unknown',
+          start_time: startTime,
+          last_message: lastMsg,
+          message_count: messageCount,
+          duration_seconds: durationSeconds,
+          readable_start: startTime ? new Date(startTime).toLocaleString() : null
+        });
+      } catch (e) {
+        console.warn('Failed to parse call log', f, e && e.message);
+      }
+    }
+  }
+  // sort sessions by start_time desc (fallback to filename order)
+  sessions.sort((a, b) => {
+    if (a.start_time && b.start_time) return new Date(b.start_time) - new Date(a.start_time);
+    if (a.start_time) return -1;
+    if (b.start_time) return 1;
+    return 0;
+  });
   res.json({
     stats: {
       ...sessionStats,
@@ -493,6 +603,214 @@ app.get('/api/monitoring', authRequireAdmin, (req, res) => {
     sessions,
     config: defaultConfig
   });
+});
+
+// PDF/Knowledge Base functionality
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const filename = `${timestamp}_${file.originalname}`;
+    cb(null, filename);
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'));
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
+
+// PDF upload endpoint
+app.post('/api/pdfs/upload', authRequireAdmin, upload.array('pdfs', 5), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded' });
+    }
+
+    const results = [];
+    for (const file of req.files) {
+      try {
+        // Parse PDF text
+        const dataBuffer = fs.readFileSync(file.path);
+        console.log('Processing PDF:', file.originalname, 'Size:', dataBuffer.length);
+        
+        // Try multiple approaches to parse PDF
+        let pdfData = { text: '' };
+        let textExtracted = false;
+        
+        if (pdfParse) {
+          try {
+            console.log('Attempting PDF parse, pdfParse type:', typeof pdfParse);
+            
+            // Method 1: Direct function call
+            if (typeof pdfParse === 'function') {
+              pdfData = await pdfParse(dataBuffer);
+              textExtracted = true;
+              console.log('PDF parsed successfully with direct call');
+            }
+            // Method 2: Try default export
+            else if (pdfParse.default && typeof pdfParse.default === 'function') {
+              pdfData = await pdfParse.default(dataBuffer);
+              textExtracted = true;
+              console.log('PDF parsed successfully with default export');
+            }
+            // Method 3: Check if it's an object with parse method
+            else if (pdfParse.parse && typeof pdfParse.parse === 'function') {
+              pdfData = await pdfParse.parse(dataBuffer);
+              textExtracted = true;
+              console.log('PDF parsed successfully with parse method');
+            }
+            // Method 4: Try to call it anyway and let it fail gracefully
+            else {
+              try {
+                pdfData = await pdfParse(dataBuffer);
+                textExtracted = true;
+                console.log('PDF parsed successfully with fallback call');
+              } catch (fallbackError) {
+                console.log('All PDF parse methods failed, using text-free storage');
+              }
+            }
+          } catch (parseError) {
+            console.error('PDF Parse Error:', parseError.message);
+            console.log('PDF will be stored without text content');
+          }
+        } else {
+          console.log('pdf-parse library not available, storing PDF without text extraction');
+        }
+        
+        // Store in MongoDB
+        const pdfDoc = await db.createPDF({
+          filename: file.originalname,
+          filepath: file.path,
+          uploadedBy: req.user.email,
+          uploadedAt: new Date(),
+          textContent: pdfData.text || '',
+          selected: false,
+          fileSize: file.size
+        });
+
+        results.push({
+          id: pdfDoc.insertedId,
+          filename: file.originalname,
+          success: true,
+          textExtracted: pdfData.text ? true : false
+        });
+      } catch (error) {
+        console.error('Error processing PDF:', error);
+        results.push({
+          filename: file.originalname,
+          success: false,
+          error: error.message
+        });
+      }
+    }
+
+    res.json({ results });
+  } catch (error) {
+    console.error('PDF upload error:', error);
+    res.status(500).json({ error: 'Failed to upload PDFs' });
+  }
+});
+
+// List PDFs endpoint
+app.get('/api/pdfs/list', authRequireAdmin, async (req, res) => {
+  try {
+    const pdfs = await db.getAllPDFs();
+    res.json({ 
+      pdfs: pdfs.map(pdf => ({
+        id: pdf._id,
+        filename: pdf.filename,
+        uploadedBy: pdf.uploadedBy,
+        uploadedAt: pdf.uploadedAt,
+        selected: pdf.selected || false,
+        fileSize: pdf.fileSize
+      }))
+    });
+  } catch (error) {
+    console.error('Error listing PDFs:', error);
+    res.status(500).json({ error: 'Failed to list PDFs' });
+  }
+});
+
+// Select PDF endpoint
+app.post('/api/pdfs/select', authRequireAdmin, async (req, res) => {
+  try {
+    const { pdfId } = req.body;
+    await db.selectPDF(pdfId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error selecting PDF:', error);
+    res.status(500).json({ error: 'Failed to select PDF' });
+  }
+});
+
+// Delete PDF endpoint
+app.delete('/api/pdfs/:id', authRequireAdmin, async (req, res) => {
+  try {
+    const pdfId = req.params.id;
+    const pdf = await db.getPDFById(pdfId);
+    
+    if (pdf && pdf.filepath) {
+      // Delete file from disk
+      if (fs.existsSync(pdf.filepath)) {
+        fs.unlinkSync(pdf.filepath);
+      }
+    }
+    
+    await db.deletePDF(pdfId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting PDF:', error);
+    res.status(500).json({ error: 'Failed to delete PDF' });
+  }
+});
+
+// Search in PDFs endpoint (simplified version)
+app.post('/api/pdfs/search', async (req, res) => {
+  try {
+    const { query } = req.body;
+    if (!query) {
+      return res.status(400).json({ error: 'Search query is required' });
+    }
+
+    const selectedPdf = await db.getSelectedPDF();
+    if (!selectedPdf) {
+      return res.json({ results: [], message: 'No PDF selected' });
+    }
+
+    // Simple text search in PDF content
+    const content = selectedPdf.textContent || '';
+    const queryLower = query.toLowerCase();
+    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    
+    const results = sentences
+      .filter(sentence => sentence.toLowerCase().includes(queryLower))
+      .slice(0, 5)
+      .map(sentence => ({
+        text: sentence.trim(),
+        filename: selectedPdf.filename
+      }));
+
+    res.json({ results, selectedPdf: selectedPdf.filename });
+  } catch (error) {
+    console.error('PDF search error:', error);
+    res.status(500).json({ error: 'Failed to search PDFs' });
+  }
 });
 
 // Static files after API routes
@@ -583,7 +901,8 @@ app.post('/auth/reset-password', async (req, res) => {
   res.json({ success: true });
 });
 
-app.get('/admin', authRequireAdmin, (req, res) => {
+app.get('/admin', (req, res) => {
+  // Admin page will handle authentication on client-side
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
@@ -594,32 +913,40 @@ app.get('/config.html', (req, res) => {
 
 
 
-app.get('/monitoring', authRequireAdmin, (req, res) => {
+app.get('/monitoring', (req, res) => {
+  // Monitoring page will handle authentication on client-side
   res.sendFile(path.join(__dirname, 'public', 'monitoring.html'));
 });
 
-app.get('/users', authRequireAdmin, (req, res) => {
+app.get('/users', (req, res) => {
+  // Users page will handle authentication on client-side
   res.sendFile(path.join(__dirname, 'public', 'users.html'));
 });
 
-app.get('/dashboard', authRequireAdmin, (req, res) => {
+app.get('/dashboard', (req, res) => {
+  // Dashboard will handle authentication on client-side
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-app.get('/api/admin/users/export', authRequireAdmin, (req, res) => {
-  const data = loadUsers();
-  const users = data.users.map(u => ({
-    name: u.name,
-    email: u.email,
-    phone: u.phone || '-',
-    company: u.company || '-',
-    role: u.role || '-',
-    provider: u.provider,
-    createdAt: new Date(u.createdAt).toLocaleString('id-ID'),
-    isAdmin: data.admins.includes(u.email) ? 'Yes' : 'No'
-  }));
+app.get('/api/admin/users/export', authRequireAdmin, async (req, res) => {
+  try {
+    const allUsers = await db.getAllUsers();
+    const users = allUsers.map(u => ({
+      name: u.name,
+      email: u.email,
+      phone: u.phone || '-',
+      company: u.company || '-',
+      role: u.role || '-',
+      provider: u.provider,
+      createdAt: new Date(u.createdAt).toLocaleString('id-ID'),
+      isAdmin: u.isAdmin ? 'Yes' : 'No'
+    }));
   
-  res.json({ users });
+    res.json({ users });
+  } catch (error) {
+    console.error('Export users error:', error);
+    res.status(500).json({ error: 'Failed to export users' });
+  }
 });
 
 // Debug helper: force-send a greeting to an active session or to all sessions

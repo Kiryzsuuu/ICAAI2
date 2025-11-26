@@ -1,11 +1,11 @@
-// auth-cosmos.js - Authentication with Cosmos DB
+// auth-mongo.js - Authentication with MongoDB
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const AzureAdOAuth2Strategy = require('passport-azure-ad').OIDCStrategy;
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const db = require('./cosmosdb');
+const db = require('./mongodb');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 
@@ -53,7 +53,6 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
           isAdmin: false
         });
         
-        // First user is admin
         const allUsers = await db.getAllUsers();
         if (allUsers.length === 1) {
           await db.setAdmin(user.email, true);
@@ -68,15 +67,15 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   }));
 }
 
-// Microsoft OAuth Strategy
-if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET) {
+// Microsoft Azure AD OAuth Strategy
+if (process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_SECRET) {
   passport.use(new AzureAdOAuth2Strategy({
-    identityMetadata: 'https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration',
-    clientID: process.env.MICROSOFT_CLIENT_ID,
-    clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
-    responseType: 'code',
+    identityMetadata: `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/v2.0/.well-known/openid-configuration`,
+    clientID: process.env.AZURE_AD_CLIENT_ID,
+    clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
+    responseType: 'code id_token',
     responseMode: 'form_post',
-    redirectUrl: process.env.MICROSOFT_CALLBACK_URL || 'http://localhost:4000/auth/microsoft/callback',
+    redirectUrl: process.env.AZURE_AD_CALLBACK_URL || 'http://localhost:4000/auth/microsoft/callback',
     allowHttpForRedirectUrl: true,
     scope: ['profile', 'email', 'openid']
   },
@@ -180,11 +179,35 @@ async function requireAdmin(req, res, next) {
   }
 }
 
+// Super admin middleware
+async function requireSuperAdmin(req, res, next) {
+  const token = req.headers.authorization?.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const isUserSuperAdmin = await db.isSuperAdmin(decoded.email);
+    
+    if (!isUserSuperAdmin) {
+      return res.status(403).json({ error: 'Super Admin access required' });
+    }
+    
+    req.user = decoded;
+    next();
+  } catch (err) {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+}
+
 module.exports = {
   initAuth,
   passport,
   requireAuth,
   requireAdmin,
+  requireSuperAdmin,
   generateToken,
   JWT_SECRET
 };

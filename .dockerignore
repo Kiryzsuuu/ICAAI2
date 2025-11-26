@@ -1,0 +1,15 @@
+# Ignore these files when building Docker image
+.git
+.gitignore
+node_modules
+npm-debug.log
+.env
+.vscode
+*.md
+backend/
+app-logs/
+app-logs.zip
+frontend-deploy.zip
+.deployignore
+Dockerfile
+.dockerignore

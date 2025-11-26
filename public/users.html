@@ -273,12 +273,20 @@
                 if (response.ok) {
                     const data = await response.json();
                     allUsers = data.users;
+                    currentUser = data.currentUser;
                     renderUsers(allUsers);
+                    
+                    // Update page header based on user role
+                    if (currentUser && currentUser.isSuperAdmin) {
+                        document.querySelector('.page-title').innerHTML = 'User Management <span style="font-size: 14px; background: #3b82f6; color: white; padding: 2px 6px; border-radius: 4px;">Super Admin</span>';
+                    }
                 }
             } catch (error) {
                 console.error('Failed to load users:', error);
             }
         }
+        
+        let currentUser = null;
         
         function renderUsers(users) {
             const tbody = document.getElementById('usersTableBody');
@@ -286,8 +294,13 @@
             
             users.forEach(user => {
                 const row = document.createElement('tr');
+                const userRoleDisplay = user.userRole === 'superadmin' ? 'Super Admin' : 
+                                      user.userRole === 'admin' ? 'Admin' : 'User';
+                const roleBadgeClass = user.userRole === 'superadmin' ? 'badge-admin' :
+                                     user.userRole === 'admin' ? 'badge-admin' : 'badge-user';
+                
                 row.innerHTML = `
-                    <td><strong>${user.name}</strong></td>
+                    <td><strong>${user.name || 'N/A'}</strong></td>
                     <td>${user.email}</td>
                     <td>${user.phone}</td>
                     <td>${user.company}</td>
@@ -295,22 +308,46 @@
                     <td><span style="text-transform: capitalize;">${user.provider}</span></td>
                     <td>${new Date(user.createdAt).toLocaleDateString('id-ID')}</td>
                     <td>
-                        <span class="badge ${user.isAdmin ? 'badge-admin' : 'badge-user'}">
-                            ${user.isAdmin ? 'Admin' : 'User'}
+                        <span class="badge ${roleBadgeClass}">
+                            ${userRoleDisplay}
                         </span>
                     </td>
                     <td>
                         <div class="action-btns">
-                            ${!user.isAdmin ? 
-                                `<button class="btn btn-primary" onclick="makeAdmin('${user.id}')">Make Admin</button>` :
-                                `<button class="btn" onclick="removeAdmin('${user.id}')">Remove Admin</button>`
-                            }
-                            <button class="btn btn-danger" onclick="deleteUser('${user.id}', '${user.name}')">Delete</button>
+                            ${renderActionButtons(user)}
                         </div>
                     </td>
                 `;
                 tbody.appendChild(row);
             });
+        }
+        
+        function renderActionButtons(user) {
+            let buttons = '';
+            
+            // Super admin cannot be modified
+            if (user.userRole === 'superadmin') {
+                return '<span style="color: #64748b; font-size: 12px;">Protected</span>';
+            }
+            
+            // Only super admin can manage admin roles
+            if (currentUser && currentUser.isSuperAdmin) {
+                if (user.userRole === 'user') {
+                    buttons += `<button class="btn btn-primary" onclick="changeRole('${user.id}', 'admin')">Make Admin</button>`;
+                } else if (user.userRole === 'admin') {
+                    buttons += `<button class="btn" onclick="changeRole('${user.id}', 'user')">Remove Admin</button>`;
+                }
+                buttons += `<button class="btn btn-danger" onclick="deleteUser('${user.id}', '${user.name || user.email}')">Delete</button>`;
+            } else {
+                // Regular admin can only delete users
+                if (user.userRole === 'user') {
+                    buttons += `<button class="btn btn-danger" onclick="deleteUser('${user.id}', '${user.name || user.email}')">Delete</button>`;
+                } else {
+                    buttons += '<span style="color: #64748b; font-size: 12px;">No permissions</span>';
+                }
+            }
+            
+            return buttons;
         }
         
         function filterUsers() {
@@ -325,50 +362,40 @@
             renderUsers(filtered);
         }
         
-        async function makeAdmin(userId) {
-            if (!confirm('Make this user an admin?')) return;
+        async function changeRole(userId, newRole) {
+            const action = newRole === 'admin' ? 'promote to admin' : 'remove admin privileges from';
+            if (!confirm(`${action} this user?`)) return;
             
             try {
                 const token = localStorage.getItem('icaai_token');
-                const response = await fetch('/api/admin/toggle', {
+                const response = await fetch('/api/admin/change-role', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ userId, makeAdmin: true })
+                    body: JSON.stringify({ userId, newRole })
                 });
                 
                 if (response.ok) {
-                    alert('User promoted to admin');
+                    alert(newRole === 'admin' ? 'User promoted to admin' : 'Admin privileges removed');
                     loadUsers();
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Failed to change user role');
                 }
             } catch (error) {
-                alert('Failed to make admin');
+                alert('Failed to change user role');
             }
         }
         
-        async function removeAdmin(userId) {
-            if (!confirm('Remove admin privileges from this user?')) return;
-            
-            try {
-                const token = localStorage.getItem('icaai_token');
-                const response = await fetch('/api/admin/toggle', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ userId, makeAdmin: false })
-                });
-                
-                if (response.ok) {
-                    alert('Admin privileges removed');
-                    loadUsers();
-                }
-            } catch (error) {
-                alert('Failed to remove admin');
-            }
+        // Fallback functions for old admin toggle
+        async function makeAdmin(userId) { 
+            changeRole(userId, 'admin'); 
+        }
+        
+        async function removeAdmin(userId) { 
+            changeRole(userId, 'user'); 
         }
         
         async function deleteUser(userId, userName) {

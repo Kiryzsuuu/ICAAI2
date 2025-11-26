@@ -1,0 +1,15 @@
+.git
+.vscode
+node_modules
+backend
+__pycache__
+*.pyc
+.env
+.env.local
+backend-deploy.zip
+migrate-users-to-cosmos.js
+Spacefile
+.gitignore
+README.md
+*.md
+deploy.sh

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@azure/cosmos": "^4.8.0",
+    "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "concurrently": "^8.2.2",
     "cors": "^2.8.5",
@@ -20,12 +21,15 @@
     "express-session": "^1.18.2",
     "jsonwebtoken": "^9.0.2",
     "microsoft-cognitiveservices-speech-sdk": "^1.29.0",
+    "mongodb": "^7.0.0",
+    "multer": "^2.0.2",
     "nodemailer": "^7.0.10",
     "passport": "^0.7.0",
     "passport-azure-ad": "^4.3.5",
     "passport-google-oauth20": "^2.0.0",
     "passport-local": "^1.0.0",
     "passport-microsoft": "^2.1.0",
+    "pdf-parse": "^2.4.5",
     "socket.io": "^4.7.2",
     "socket.io-client": "^4.8.1",
     "ws": "^8.14.2"

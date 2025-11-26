@@ -523,54 +523,28 @@ class RealtimePlayground {
     }
     
     updateSessionsList(sessions) {
-        const container = document.getElementById('sessionsList');
-        if (!container) return;
-        
-        // Show refresh indicator
-        const refreshIndicator = document.getElementById('refreshIndicator');
-        if (refreshIndicator) {
-            refreshIndicator.style.display = 'inline-block';
-            setTimeout(() => {
-                refreshIndicator.style.display = 'none';
-            }, 500);
-        }
-        
+        const tableBody = document.getElementById('sessionsTableBody');
+        if (!tableBody) return;
+
         if (sessions.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div>🔍 No active sessions</div>
-                    <div style="margin-top:4px;font-size:10px;">Sessions will appear here when users connect</div>
-                </div>
-            `;
+            tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#64748b;">No sessions found</td></tr>`;
             return;
         }
-        
-        container.innerHTML = sessions.map(session => {
-            const statusClass = session.isConnected ? 
-                (session.hasOngoingResponse ? 'status-busy' : 'status-connected') : 
-                'status-disconnected';
-            
-            const statusText = session.isConnected ? 
-                (session.hasOngoingResponse ? 'Processing' : 'Connected') : 
-                'Disconnected';
-            
-            const sessionTime = new Date().toLocaleTimeString('en-US', { 
-                hour12: false, 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
-            
+
+        tableBody.innerHTML = sessions.map(session => {
+            const status = session.status || 'unknown';
+            const duration = session.duration_seconds !== null ? `${session.duration_seconds}s` : '-';
+            const messages = session.message_count || 0;
+            const started = session.readable_start || '-';
             return `
-                <div class="session-item">
-                    <div class="session-header">
-                        <div class="session-id">${session.sessionId.substring(0, 12)}...</div>
-                        <div class="session-time">${sessionTime}</div>
-                    </div>
-                    <div class="session-status ${statusClass}">
-                        <span class="status-dot"></span>
-                        ${statusText}
-                    </div>
-                </div>
+                <tr>
+                    <td>${session.session_id ? session.session_id.substring(0, 12) + '...' : '-'}</td>
+                    <td>${status}</td>
+                    <td>${duration}</td>
+                    <td>${messages}</td>
+                    <td>${started}</td>
+                    <td><button class="btn btn-primary" onclick="viewSessionDetail('${session.session_id}')">View</button></td>
+                </tr>
             `;
         }).join('');
     }
@@ -850,53 +824,57 @@ class RealtimePlayground {
             this.mediaStream = await navigator.mediaDevices.getUserMedia({ 
                 audio: { 
                     sampleRate: 24000,
-                    channelCount: 1,
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true
-                } 
-            });
-            console.log('Microphone access granted');
-            
-            // Setup audio worklet for microphone processing
-            await this.setupAudioWorklet();
-            console.log('Audio worklet setup complete');
-            
-            // Test audio context by playing a silent buffer
-            await this.testAudioPlayback();
-            
-        } catch (error) {
-            console.error('Audio initialization error:', error);
-            
-            // Provide more specific error messages
-            if (error.name === 'NotAllowedError') {
-                throw new Error('Microphone access denied. Please allow microphone access and refresh.');
-            } else if (error.name === 'NotFoundError') {
-                throw new Error('No microphone found. Please connect a microphone and refresh.');
-            } else if (error.name === 'NotSupportedError') {
-                throw new Error('Audio not supported in this browser.');
-            } else {
-                throw new Error('Audio initialization failed: ' + error.message);
-            }
-        }
-    }
-    
-    async testAudioPlayback() {
-        try {
-            // Create a short silent buffer to test audio playback
-            const testBuffer = this.audioContext.createBuffer(1, 1024, this.audioContext.sampleRate);
-            const source = this.audioContext.createBufferSource();
-            source.buffer = testBuffer;
-            source.connect(this.audioContext.destination);
-            source.start();
-            console.log('Audio playback test successful');
-        } catch (error) {
-            console.warn('Audio playback test failed:', error);
-        }
-    }
-    
-    async setupAudioWorklet() {
-        try {
+                    try {
+                        console.log('Initializing audio system...');
+                        // Initialize audio context first
+                        this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                            sampleRate: 24000,
+                            latencyHint: 'playback'
+                        });
+                        console.log('Audio context created, state:', this.audioContext.state);
+                        // Resume audio context if suspended (required by browser policies)
+                        if (this.audioContext.state === 'suspended') {
+                            console.log('Resuming suspended audio context...');
+                            await this.audioContext.resume();
+                            console.log('Audio context resumed, state:', this.audioContext.state);
+                        }
+                        // Initialize audio player
+                        this.audioPlayer = new AudioPlayer(this.audioContext);
+                        console.log('Audio player initialized');
+                        // Only request mic if not mobile OR user pressed mic button
+                        if (!(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) || this.isRecording) {
+                            console.log('Requesting microphone access...');
+                            this.mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                                audio: { 
+                                    sampleRate: 24000,
+                                    channelCount: 1,
+                                    echoCancellation: true,
+                                    noiseSuppression: true,
+                                    autoGainControl: true
+                                } 
+                            });
+                            console.log('Microphone access granted');
+                            // Setup audio worklet for microphone processing
+                            await this.setupAudioWorklet();
+                            console.log('Audio worklet setup complete');
+                            // Test audio context by playing a silent buffer
+                            await this.testAudioPlayback();
+                        } else {
+                            console.log('Mobile device detected, mic will only activate on button press.');
+                        }
+                    } catch (error) {
+                        console.error('Audio initialization error:', error);
+                        // Provide more specific error messages
+                        if (error.name === 'NotAllowedError') {
+                            throw new Error('Microphone access denied. Please allow microphone access and refresh.');
+                        } else if (error.name === 'NotFoundError') {
+                            throw new Error('No microphone found. Please connect a microphone and refresh.');
+                        } else if (error.name === 'NotSupportedError') {
+                            throw new Error('Audio not supported in this browser.');
+                        } else {
+                            throw new Error('Audio initialization failed: ' + error.message);
+                        }
+                    }
             // Create audio worklet
             const source = this.audioContext.createMediaStreamSource(this.mediaStream);
             const processor = this.audioContext.createScriptProcessor(2048, 1, 1);
@@ -1079,7 +1057,7 @@ class RealtimePlayground {
     
     async loadPDFListReadOnly() {
         try {
-            const response = await fetch('http://127.0.0.1:8004/list-pdfs');
+            const response = await fetch('/api/pdfs/list');
             if (!response.ok) return;
             
             const data = await response.json();
@@ -1105,34 +1083,63 @@ class RealtimePlayground {
     }
     
     async handleFileUpload(files) {
+        const formData = new FormData();
+        let pdfCount = 0;
+        
         for (let file of files) {
             if (file.type === 'application/pdf') {
-                const formData = new FormData();
-                formData.append('file', file);
-                
-                try {
-                    const response = await fetch('http://127.0.0.1:8004/upload-pdf', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    if (response.ok) {
-                        this.addMessage('system', `PDF uploaded: ${file.name}`);
-                        this.loadPDFList();
-                    } else {
-                        this.addMessage('system', `Failed to upload: ${file.name}`);
-                    }
-                } catch (error) {
-                    console.error('Upload error:', error);
-                    this.addMessage('system', `Upload error: ${file.name}`);
-                }
+                formData.append('pdfs', file);
+                pdfCount++;
             }
+        }
+        
+        if (pdfCount === 0) {
+            this.addMessage('system', 'No PDF files selected');
+            return;
+        }
+        
+        try {
+            const token = localStorage.getItem('icaai_token');
+            const response = await fetch('/api/pdfs/upload', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                let successCount = 0;
+                let errorCount = 0;
+                
+                result.results.forEach(r => {
+                    if (r.success) {
+                        successCount++;
+                        this.addMessage('system', `✓ PDF uploaded: ${r.filename}`);
+                    } else {
+                        errorCount++;
+                        this.addMessage('system', `✗ Failed: ${r.filename} - ${r.error}`);
+                    }
+                });
+                
+                if (successCount > 0) {
+                    this.loadPDFList();
+                }
+            } else {
+                const error = await response.json();
+                this.addMessage('system', `Upload failed: ${error.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            this.addMessage('system', `Upload error: ${error.message}`);
         }
     }
     
     async loadPDFList() {
         try {
-            const response = await fetch('http://127.0.0.1:8004/list-pdfs');
+            const token = localStorage.getItem('icaai_token');
+            const response = await fetch('/api/pdfs/list', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             if (!response.ok) {
                 console.error('Failed to load PDFs:', response.status);
                 return;
@@ -1169,10 +1176,14 @@ class RealtimePlayground {
     
     async selectPDF(pdfId, element) {
         try {
-            const response = await fetch('http://127.0.0.1:8004/select-pdf', {
+            const token = localStorage.getItem('icaai_token');
+            const response = await fetch('/api/pdfs/select', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pdf_id: pdfId })
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ pdfId: pdfId })
             });
             
             const result = await response.json();
